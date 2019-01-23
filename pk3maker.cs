@@ -22,11 +22,12 @@ namespace Pk3Maker
             // sound
             // textures
             Stopwatch watch = Stopwatch.StartNew();
-            mapName = "Fjo3tourney6_rc3";
+            mapName = "Fjo3tourney6_b6";
             Pk3Maker.addCfgMapFileIfPresent();
             Pk3Maker.addLevelshotIfPresent();
             Pk3Maker.parseMapFile();
             Pk3Maker.makePk3();
+            Console.WriteLine("Finished writing pk3");
             watch.Stop();
             Console.WriteLine($"Elapsed time {watch.ElapsedMilliseconds}ms");
         }
@@ -37,43 +38,54 @@ namespace Pk3Maker
             Directory.CreateDirectory(tempDirectory);
             Console.WriteLine(tempDirectory);
             Directory.CreateDirectory($"{tempDirectory}/maps");
-            List<string> value = new List<string>();
-            if (Pk3Maker.pk3Structure.TryGetValue("cfg-maps", out value))
+            List<string> list = new List<string>();
+            if (Pk3Maker.pk3Structure.TryGetValue("cfg-maps", out list))
             {
-                foreach (string config in value)
-                {
-                    Console.WriteLine(config);
-                }
                 Directory.CreateDirectory($"{tempDirectory}/cfg-maps");
-            }
-            if (Pk3Maker.pk3Structure.TryGetValue("levelshots", out value))
-            {
-                foreach (string levelshot in value)
+                foreach (string cfgMap in list)
                 {
-                    Console.WriteLine(levelshot);
+                    string fileName = Path.GetFileName(cfgMap);
+                    string path = $"cfg-maps/{fileName}";
+                    Pk3Maker.copyFileToTemp(tempDirectory, path);
                 }
-                Directory.CreateDirectory($"{tempDirectory}/levelshots");
             }
-            if (Pk3Maker.pk3Structure.TryGetValue("env", out value))
+            if (Pk3Maker.pk3Structure.TryGetValue("levelshots", out list))
             {
-                foreach (string env in value)
+                Directory.CreateDirectory($"{tempDirectory}/levelshots");
+                foreach (string levelshot in list)
+                {
+                    string fileName = Path.GetFileName(levelshot);
+                    string path = $"levelshots/{fileName}";
+                    Pk3Maker.copyFileToTemp(tempDirectory, path);
+                }
+            }
+            if (Pk3Maker.pk3Structure.TryGetValue("env", out list))
+            {
+                Directory.CreateDirectory($"{tempDirectory}/env");
+                foreach (string env in list)
                 {
                     Console.WriteLine(env);
+                    Pk3Maker.copyFileToTemp(tempDirectory, env);
                 }
-                Directory.CreateDirectory($"{tempDirectory}/env");
             }
             if (Pk3Maker.finalTextureList.Count > 0)
             {
                 Directory.CreateDirectory($"{tempDirectory}/textures");
                 foreach (string texture in Pk3Maker.finalTextureList)
                 {
-                    Console.WriteLine(texture);
+                    Pk3Maker.copyFileToTemp(tempDirectory, texture);
                 }
 
             }
-            if (Pk3Maker.pk3Structure["scripts"].Count > 0)
+            if (Pk3Maker.pk3Structure.TryGetValue("scripts", out list))
             {
                 Directory.CreateDirectory($"{tempDirectory}/scripts");
+                foreach (string script in list)
+                {
+                    string fileName = Path.GetFileName(script);
+                    string path = $"scripts/{fileName}";
+                    Pk3Maker.copyFileToTemp(tempDirectory, path);
+                }
             }
 
             string[] folders = Directory.GetDirectories(tempDirectory);
@@ -81,6 +93,12 @@ namespace Pk3Maker
             {
                 Console.WriteLine(folder);
             }
+        }
+
+        static void copyFileToTemp(string tempDirectory, string file)
+        {
+            Directory.CreateDirectory(tempDirectory + "/" + Path.GetDirectoryName(file));
+            File.Copy($"/home/fjogen/games/quake3/baseq3/{file}", $"{tempDirectory}/{file}", true);
         }
 
         static void parseMapFile()
@@ -139,7 +157,7 @@ namespace Pk3Maker
                     {
                         string texture = Regex.Match(line, @"((\w+)\/((\w)+[\/_-]*)*)+").Value;
                         texture = Pk3Maker.addExtensionToTexture(texture);
-                        if (!shaderNameOrTexture.Contains(texture) && !texture.Contains("common/") && !texture.Contains("common_alphascale/"))
+                        if (!shaderNameOrTexture.Contains(texture) && !texture.Contains("common/") && !texture.Contains("common_alphascale/") && !texture.Contains("sfx/") && !texture.Contains("liquids/") && !texture.Contains("effects/"))
                         {
                             shaderNameOrTexture.Add(texture);
                         }
@@ -169,7 +187,7 @@ namespace Pk3Maker
             }
             else
             {
-                Console.WriteLine("This is a shader with no matching texture name; adding as is to replace later");
+                // Console.WriteLine("This is a shader with a name with no matching texture name; adding as is to replace later");
                 return $"textures/{texture}";
             }
         }
@@ -249,7 +267,7 @@ namespace Pk3Maker
                                 trimmedLine = trimmedLine.Replace("skyParms ", "");
                                 trimmedLine = trimmedLine.Replace("skyparms ", "");
                                 trimmedLine = trimmedLine.Trim(); // Trim that trimmed shit
-                                if (trimmedLine.Contains("textures/sfx/") || trimmedLine.Contains("textures/effects/") || trimmedLine.Contains("textures/liquids/"))
+                                if (trimmedLine.Contains("textures/sfx") || trimmedLine.Contains("textures/effects") || trimmedLine.Contains("textures/liquids"))
                                 {
                                     continue;
                                 }
