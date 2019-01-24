@@ -686,23 +686,23 @@
     ]
   },
   "packageFolders": {
-    "/home/fjogen/.nuget/packages/": {},
+    "/home/vegfjogs/.nuget/packages/": {},
     "/usr/share/dotnet/sdk/NuGetFallbackFolder": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/fjogen/projects/pk3maker/pk3maker.csproj",
+      "projectUniqueName": "/home/vegfjogs/projects/pk3maker/pk3maker.csproj",
       "projectName": "pk3maker",
-      "projectPath": "/home/fjogen/projects/pk3maker/pk3maker.csproj",
-      "packagesPath": "/home/fjogen/.nuget/packages/",
-      "outputPath": "/home/fjogen/projects/pk3maker/obj/",
+      "projectPath": "/home/vegfjogs/projects/pk3maker/pk3maker.csproj",
+      "packagesPath": "/home/vegfjogs/.nuget/packages/",
+      "outputPath": "/home/vegfjogs/projects/pk3maker/obj/",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "/usr/share/dotnet/sdk/NuGetFallbackFolder"
       ],
       "configFilePaths": [
-        "/home/fjogen/.nuget/NuGet/NuGet.Config"
+        "/home/vegfjogs/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "netcoreapp2.2"

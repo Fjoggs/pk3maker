@@ -1,16 +1,22 @@
 using System;
+using System.Diagnostics;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Collections.Generic;
-using System.Diagnostics;
+using System.Linq;
 using System.Text.RegularExpressions;
+
+using static Pk3Maker.Shader;
 
 namespace Pk3Maker
 {
     class Pk3Maker
     {
         private static string mapName;
+        private static string pathToQuake3;
         private static List<string> finalTextureList;
+
+        private static List<string> soundList = new List<string>();
         private static Dictionary<string, List<string>> pk3Structure = new Dictionary<string, List<string>>();
         static void Main()
         {
@@ -23,7 +29,9 @@ namespace Pk3Maker
             // sound
             // textures
             Stopwatch watch = Stopwatch.StartNew();
-            mapName = "Fjo3tourney6_rc3";
+            Pk3Maker.mapName = "Fjo3tourney6_rc2";
+            // Pk3Maker.pathToQuake3 = "/home/fjogen/games/quake3";
+            Pk3Maker.pathToQuake3 = "/home/vegfjogs/games/quake3";
             Pk3Maker.addCfgMapFileIfPresent();
             Pk3Maker.addLevelshotIfPresent();
             Pk3Maker.parseMapFile();
@@ -39,8 +47,8 @@ namespace Pk3Maker
             string tempDirectory = Path.Combine(Path.GetTempPath(), Pk3Maker.mapName);
             Directory.CreateDirectory(tempDirectory);
             Directory.CreateDirectory($"{tempDirectory}/maps");
-            Pk3Maker.copyFileToTemp(tempDirectory, $"maps/{mapName}.bsp");
-            Pk3Maker.copyFileToTemp(tempDirectory, $"maps/{mapName}.map");
+            Pk3Maker.copyFileToTemp(tempDirectory, $"maps/{Pk3Maker.mapName}.bsp");
+            Pk3Maker.copyFileToTemp(tempDirectory, $"maps/{Pk3Maker.mapName}.map");
             List<string> list = new List<string>();
             if (Pk3Maker.pk3Structure.TryGetValue("cfg-maps", out list))
             {
@@ -82,11 +90,21 @@ namespace Pk3Maker
             if (Pk3Maker.pk3Structure.TryGetValue("scripts", out list))
             {
                 Directory.CreateDirectory($"{tempDirectory}/scripts");
-                Pk3Maker.copyFileToTemp(tempDirectory, $"scripts/{mapName}.arena");
+                Pk3Maker.copyFileToTemp(tempDirectory, $"scripts/{Pk3Maker.mapName}.arena");
                 foreach (string script in list)
                 {
                     string fileName = Path.GetFileName(script);
                     string path = $"scripts/{fileName}";
+                    Pk3Maker.copyFileToTemp(tempDirectory, path);
+                }
+            }
+            if (Pk3Maker.pk3Structure.TryGetValue("sound", out list))
+            {
+                Directory.CreateDirectory($"{tempDirectory}/sound");
+                foreach (string sound in list)
+                {
+                    string fileName = Path.GetFileName(sound);
+                    string path = $"sound/{fileName}";
                     Pk3Maker.copyFileToTemp(tempDirectory, path);
                 }
             }
@@ -102,19 +120,21 @@ namespace Pk3Maker
         static void makePk3(string directoryToZip)
         {
             string workingDirectory = Directory.GetCurrentDirectory();
-            string pk3File = $"{workingDirectory}/{mapName}.pk3";
+            string pk3File = $"{workingDirectory}/{Pk3Maker.mapName}.pk3";
             if (File.Exists(pk3File))
             {
                 File.Delete(pk3File);
             }
             ZipFile.CreateFromDirectory(directoryToZip, pk3File);
             Console.WriteLine($"Wrote succesfully to {pk3File}");
+            File.Copy(pk3File, $"/home/vegfjogs/games/quake3-dev/baseq3", true);
+            Console.WriteLine($"Copied {pk3File} to /home/vegfjogs/games/quake3-dev/baseq3");
         }
 
         static void copyFileToTemp(string tempDirectory, string file)
         {
             Directory.CreateDirectory(tempDirectory + "/" + Path.GetDirectoryName(file));
-            string sourceFile = $"/home/fjogen/games/quake3/baseq3/{file}";
+            string sourceFile = $"{Pk3Maker.pathToQuake3}/baseq3/{file}";
             if (File.Exists(sourceFile))
             {
                 File.Copy(sourceFile, $"{tempDirectory}/{file}", true);
@@ -123,21 +143,23 @@ namespace Pk3Maker
 
         static void parseMapFile()
         {
-            string file = $"/home/fjogen/games/quake3/baseq3/maps/{Pk3Maker.mapName}.map";
+            string file = $"{Pk3Maker.pathToQuake3}/baseq3/maps/{Pk3Maker.mapName}.map";
             string[] lines = System.IO.File.ReadAllLines(file);
             List<string> shaderNamesAndTextures = Pk3Maker.getShaderNamesAndTextures(lines);
+            Pk3Maker.finalTextureList = shaderNamesAndTextures;
             List<string> shaders = Pk3Maker.getShaders(shaderNamesAndTextures);
-            List<string> shaderNames = Pk3Maker.getShaderNames(shaders);
-            shaderNamesAndTextures = Pk3Maker.addExtensionsToTextures(shaderNamesAndTextures, shaderNames);
-            List<string> additionalTextures = Pk3Maker.additionalTextures(shaders, shaderNamesAndTextures);
-            Pk3Maker.pk3Structure.Add("textures", shaderNamesAndTextures);
+            List<Shader> shaderNames = Pk3Maker.getShaderNames(shaders);
+            List<string> shaderNamesAndTexturesWithExtensions = Pk3Maker.addExtensionsToTextures(shaderNamesAndTextures, shaderNames);
+            List<Shader> usedShaders = Pk3Maker.extractAllUsedShaders(shaderNamesAndTexturesWithExtensions, shaderNames);
+            List<string> texturesFromShaders = Pk3Maker.texturesFromShaders(shaders, usedShaders);
+            Pk3Maker.pk3Structure.Add("textures", shaderNamesAndTexturesWithExtensions);
             Pk3Maker.pk3Structure.Add("scripts", shaders);
-            Pk3Maker.pk3Structure.Add("additionalTextures", additionalTextures);
+            Pk3Maker.pk3Structure.Add("additionalTextures", texturesFromShaders);
         }
 
         static void addCfgMapFileIfPresent()
         {
-            string file = $"/home/fjogen/games/quake3/baseq3/cfg-maps/{Pk3Maker.mapName}.cfg";
+            string file = $"{Pk3Maker.pathToQuake3}/baseq3/cfg-maps/{Pk3Maker.mapName}.cfg";
             if (File.Exists(file))
             {
                 Pk3Maker.pk3Structure.Add("cfg-maps", new List<string> { file });
@@ -150,7 +172,7 @@ namespace Pk3Maker
 
         static void addLevelshotIfPresent()
         {
-            string file = $"/home/fjogen/games/quake3/baseq3/levelshots/{Pk3Maker.mapName}.jpg";
+            string file = $"{Pk3Maker.pathToQuake3}/baseq3/levelshots/{Pk3Maker.mapName}.jpg";
             if (System.IO.File.Exists(file))
             {
                 Pk3Maker.pk3Structure.Add("levelshots", new List<string> { file });
@@ -165,63 +187,114 @@ namespace Pk3Maker
         {
             List<string> shaderNamesOrTextures = new List<string>();
             bool isBrush = false;
-
+            bool isEntity = false;
+            string trimmedLine;
+            int openBrackets = 0;
+            int closeBrackets = 0;
             foreach (string line in lines)
             {
+                openBrackets = 0;
+                closeBrackets = 0;
+                trimmedLine = line.Trim();
                 if (isBrush)
                 {
-                    if (line.Contains("// entity"))
+                    if (trimmedLine.Contains("// entity"))
                     {
+                        isEntity = true;
                         isBrush = false;
                         continue;
                     }
-                    if (Regex.IsMatch(line, @"((\w+)\/((\w)+[\/_-]*)*)+"))
+                    if (Regex.IsMatch(trimmedLine, @"((\w+)\/((\w)+[\/_-]*)*)+"))
                     {
-                        string texture = Regex.Match(line, @"((\w+)\/((\w)+[\/_-]*)*)+").Value;
+                        string texture = Regex.Match(trimmedLine, @"((\w+)\/((\w)+[\/_-]*)*)+").Value;
                         if (!shaderNamesOrTextures.Contains(texture) && !texture.Contains("common/") && !texture.Contains("common_alphascale/") && !texture.Contains("sfx/") && !texture.Contains("liquids/") && !texture.Contains("effects/"))
                         {
                             shaderNamesOrTextures.Add(texture);
                         }
                     }
                 }
-                if (line.Contains("// brush"))
+                else if (isEntity)
+                {
+                    if (trimmedLine.Contains("{"))
+                    {
+                        openBrackets++;
+                    }
+                    else if (trimmedLine.Contains("}"))
+                    {
+                        closeBrackets++;
+                    }
+                    else if (openBrackets == closeBrackets && openBrackets != 0)
+                    {
+                        // Finished parsing
+                        openBrackets = 0;
+                        closeBrackets = 0;
+                        isEntity = false;
+                        continue;
+                    }
+                    else if (Regex.IsMatch(trimmedLine, @"((\w+)\/((\w)+[\/_-]*)*)+") && !Path.GetExtension(trimmedLine).Equals(".ase\""))
+                    {
+                        string asset = Regex.Match(trimmedLine, @"((\w+)\/((\w)+[\/_-]*)*)+").Value;
+                        if (Path.GetExtension(trimmedLine).Equals(".wav\""))
+                        {
+                            if (!Pk3Maker.soundList.Contains($"{asset}.wav"))
+                            {
+                                Pk3Maker.soundList.Add($"{asset}.wav");
+                            }
+                        }
+                        if (!shaderNamesOrTextures.Contains(asset) && !asset.Contains("common/") && !asset.Contains("common_alphascale/") && !asset.Contains("sfx/") && !asset.Contains("liquids/") && !asset.Contains("effects/"))
+                        {
+                            shaderNamesOrTextures.Add(asset);
+                        }
+                    }
+                }
+                if (trimmedLine.Contains("// entity"))
+                {
+                    isBrush = false;
+                    isEntity = true;
+                    continue;
+                }
+                if (trimmedLine.Contains("// brush"))
                 {
                     isBrush = true;
                 }
             }
+            Pk3Maker.pk3Structure.Add("sound", Pk3Maker.soundList);
             return shaderNamesOrTextures;
         }
 
-        static List<string> addExtensionsToTextures(List<string> texturesAndShaderNames, List<string> shaderNames)
+
+
+        static List<string> addExtensionsToTextures(List<string> texturesAndShaderNames, List<Shader> shaderNames)
         {
-            // NOTE: This will fail if someone is using the same shadername as a texture for a shader that doesnt actually use
-            // that texture. (Like a sky, which uses env textures)
             List<string> list = new List<string>();
             foreach (string textureOrShader in texturesAndShaderNames)
             {
-                if (shaderNames.Contains($"textures/{textureOrShader}"))
+                bool isJpg = false;
+                bool isTga = false;
+                bool isShader = false;
+                foreach (Shader shader in shaderNames)
                 {
-                    // This is a shader; add nothing
-                    list.Add($"textures/{textureOrShader}");
+                    if (shader.shaderName.Equals($"textures/{textureOrShader}"))
+                    {
+                        // "This is a shader; adding as is to replace later";
+                        list.Add($"textures/{textureOrShader}");
+                        isShader = true;
+                        break; // We found what we're looking for, so no need to continue
+                    }
+                }
+                if (isShader)
+                {
                     continue;
                 }
-                bool isJpg = File.Exists($"/home/fjogen/games/quake3/baseq3/textures/{textureOrShader}.jpg");
-                bool isTga = File.Exists($"/home/fjogen/games/quake3/baseq3/textures/{textureOrShader}.tga");
+                isJpg = File.Exists($"{Pk3Maker.pathToQuake3}/baseq3/textures/{textureOrShader}.jpg");
+                isTga = File.Exists($"{Pk3Maker.pathToQuake3}/baseq3/textures/{textureOrShader}.tga");
                 if (isJpg)
                 {
                     list.Add($"textures/{textureOrShader}.jpg");
-                    continue;
                 }
                 else if (isTga)
                 {
                     list.Add($"textures/{textureOrShader}.tga");
-                    continue;
-                }
-                else
-                {
-                    // Console.WriteLine("This is a shader with a name with no matching texture name; adding as is to replace later");
-                    list.Add($"textures/{textureOrShader}");
-                    continue;
                 }
             }
             return list;
@@ -229,7 +302,7 @@ namespace Pk3Maker
 
         static List<string> getShaders(List<string> shaderNamesAndTextures)
         {
-            string[] shaderFiles = Directory.GetFiles("/home/fjogen/games/quake3/baseq3/scripts/", "*.shader");
+            string[] shaderFiles = Directory.GetFiles($"{Pk3Maker.pathToQuake3}/baseq3/scripts/", "*.shader");
             List<string> shaders = new List<string>();
             foreach (string file in shaderFiles)
             {
@@ -246,19 +319,17 @@ namespace Pk3Maker
             return shaders;
         }
 
-        static List<string> getShaderNames(List<string> shaders)
+        static List<Shader> getShaderNames(List<string> shaders)
         {
-            List<string> shaderNames = new List<string>();
+            List<Shader> shaderNames = new List<Shader>();
             foreach (string file in shaders)
             {
                 string[] shader = File.ReadAllLines(file);
                 foreach (string line in shader)
                 {
-                    // Disregard result if line contains whitespace (meaning it's not a shadername)
-                    if (Regex.IsMatch(line, @"((\w+)\/((\w)+[\/_-]*)*)+") && !Regex.IsMatch(line, @"\s"))
+                    if (Pk3Maker.isShaderName(line))
                     {
-                        shaderNames.Add(Regex.Match(line, @"((\w+)\/((\w)+[\/_-]*)*)+").Value.Trim());
-                        continue;
+                        shaderNames.Add(createShader(line, Path.GetFileName(file)));
                     }
 
                 }
@@ -266,11 +337,51 @@ namespace Pk3Maker
             return shaderNames;
         }
 
-        static List<string> additionalTextures(List<string> shaders, List<string> shaderNamesOrTextures)
+        static bool isShaderName(string line)
+        {
+            // In case the shader has opening brace on the same line as the shader name, remove it
+            line = line.Replace("{", "").Trim();
+            // Disregard result if line contains whitespace (meaning it's not a shadername)
+            return Regex.IsMatch(line, @"((\w+)\/((\w)+[\/_-]*)*)+") && !Regex.IsMatch(line, @"\s");
+        }
+
+        static Shader createShader(string line, string shaderFile)
+        {
+            bool hasCurlyBrace = false;
+            if (line.Contains("{"))
+            {
+                line = line.Replace("{", "");
+                hasCurlyBrace = true;
+            }
+            string shaderName = Regex.Match(line, @"((\w+)\/((\w)+[\/_-]*)*)+").Value.Trim();
+            Shader shader = new Shader(shaderName, shaderFile, hasCurlyBrace);
+            return shader;
+        }
+
+        static List<Shader> extractAllUsedShaders(List<string> shaderNamesOrTextures, List<Shader> shaderNames)
+        {
+            List<Shader> usedShaders = new List<Shader>();
+            foreach (string shaderNameOrTexture in shaderNamesOrTextures)
+            {
+                if (Path.GetExtension(shaderNameOrTexture).Equals(""))
+                {
+                    foreach (Shader shader in shaderNames)
+                    {
+                        if (shader.shaderName.Equals(shaderNameOrTexture))
+                        {
+                            usedShaders.Add(shader);
+                        }
+                    }
+                }
+            }
+            return usedShaders;
+        }
+
+        static List<string> texturesFromShaders(List<string> shaders, List<Shader> usedShaders)
         {
             List<string> additionalTextures = new List<string>();
-            Pk3Maker.finalTextureList = shaderNamesOrTextures;
             List<string> env = new List<string>();
+            Shader currentShader;
             foreach (string shader in shaders)
             {
                 string[] lines = File.ReadAllLines(shader);
@@ -279,7 +390,16 @@ namespace Pk3Maker
                 int closeBrackets = 0;
                 foreach (string line in lines)
                 {
-                    if (shaderNamesOrTextures.Contains(line))
+                    if (line.Contains("sky"))
+                    {
+                        Console.WriteLine("");
+                    }
+                    if (!Pk3Maker.isShaderName(line) && !shaderInUse)
+                    {
+                        continue;
+                    }
+                    currentShader = usedShaders.Find(x => x.shaderName == line.Replace("{", "").Trim());
+                    if (currentShader != null)
                     {
                         Pk3Maker.finalTextureList.Remove(line); // Removing this, as it's being replaced by a texture
                         shaderInUse = true;
@@ -287,21 +407,38 @@ namespace Pk3Maker
                     }
                     if (shaderInUse)
                     {
-                        if (line.Equals("{"))
+                        string trimmedLine = line.Trim();
+                        if (trimmedLine.Equals("{") || (currentShader != null && currentShader.hasCurlyBraceInName))
                         {
                             openBrackets++;
                             continue;
                         }
-                        if (line.Equals("}"))
+                        if (trimmedLine.Equals("}"))
                         {
                             closeBrackets++;
+                            continue;
                         }
                         if (openBrackets == closeBrackets && openBrackets != 0)
                         {
+                            // End of shader reached
+                            // reset state
+                            openBrackets = 0;
+                            closeBrackets = 0;
                             shaderInUse = false;
                             continue;
                         }
-                        string trimmedLine = line.Trim();
+                        if ((!trimmedLine.Contains("skyParms") && Path.GetExtension(trimmedLine).Equals("")) || Path.GetExtension(trimmedLine).Any(char.IsDigit))
+                        {
+                            // 1. Skyparms doesn't contain extension; don't skip;
+                            // 2. Not a texture, skip iteration;
+                            // 3. "Extension" is actually coordinates, skipping: e.g ("q3map_sunExt .80 .86 .94 100 300 80 2 32")
+                            continue;
+                        }
+                        if (Regex.IsMatch(trimmedLine, "qer_editorimage"))
+                        {
+                            // We ignore editorimages
+                            continue;
+                        }
                         trimmedLine = trimmedLine.Replace("\\", "/");
                         if (trimmedLine.Contains("map ") || trimmedLine.Contains("clampMap ") || trimmedLine.Contains("animMap ") || trimmedLine.Contains("videoMap ") || trimmedLine.Contains("skyParms "))
                         {
@@ -311,61 +448,27 @@ namespace Pk3Maker
                             }
                             else
                             {
-                                trimmedLine = trimmedLine.Replace("animMap ", "");
-                                trimmedLine = trimmedLine.Replace("animmap ", "");
-                                trimmedLine = trimmedLine.Replace("clampMap ", "");
-                                trimmedLine = trimmedLine.Replace("clampmap ", "");
-                                trimmedLine = trimmedLine.Replace("videoMap ", "");
-                                trimmedLine = trimmedLine.Replace("videomap ", "");
-                                trimmedLine = trimmedLine.Replace("map ", "");
-                                trimmedLine = trimmedLine.Replace("skyParms ", "");
-                                trimmedLine = trimmedLine.Replace("skyparms ", "");
-                                trimmedLine = trimmedLine.Trim(); // Trim that trimmed shit
-                                if (trimmedLine.Contains("textures/sfx") || trimmedLine.Contains("textures/effects") || trimmedLine.Contains("textures/liquids"))
+                                string trimmedLineWithoutType = Pk3Maker.removeTextureTypeAndTrim(trimmedLine);
+                                if (Pk3Maker.isVanillaTexture(trimmedLineWithoutType))
                                 {
                                     continue;
                                 }
-                                if (additionalTextures.Contains(trimmedLine))
+                                if (additionalTextures.Contains(trimmedLineWithoutType))
                                 {
+                                    // Already added; skipping
                                     continue;
                                 }
-                                if (trimmedLine.Contains("env/"))
+                                if (trimmedLineWithoutType.Contains("env/"))
                                 {
-                                    string envName = Regex.Match(line, @"(\w+\/\w+)+\s").Value.Trim();
-                                    if (File.Exists($"/home/fjogen/games/quake3/baseq3/{envName}_bk.tga"))
-                                    {
-                                        env.Add($"{envName}_bk.tga");
-                                    }
-                                    if (File.Exists($"/home/fjogen/games/quake3/baseq3/{envName}_dn.tga"))
-                                    {
-                                        env.Add($"{envName}_dn.tga");
-                                    }
-                                    if (File.Exists($"/home/fjogen/games/quake3/baseq3/{envName}_ft.tga"))
-                                    {
-                                        env.Add($"{envName}_ft.tga");
-                                    }
-                                    if (File.Exists($"/home/fjogen/games/quake3/baseq3/{envName}_lf.tga"))
-                                    {
-                                        env.Add($"{envName}_lf.tga");
-                                    }
-                                    if (File.Exists($"/home/fjogen/games/quake3/baseq3/{envName}_rt.tga"))
-                                    {
-                                        env.Add($"{envName}_rt.tga");
-                                    }
-                                    if (File.Exists($"/home/fjogen/games/quake3/baseq3/{envName}_up.tga"))
-                                    {
-                                        env.Add($"{envName}_up.tga");
-                                    }
+                                    env = Pk3Maker.addEnvTexture(line);
                                     continue;
                                 }
-                                if (!shaderNamesOrTextures.Contains(trimmedLine.Replace(".tga", "")) || !shaderNamesOrTextures.Contains(trimmedLine.Replace(".jpg", "")))
+                                string trimmedLineWithoutExtension = Pk3Maker.removeExtensions(trimmedLineWithoutType);
+                                string textureWithExtension = Pk3Maker.addCorrectExtension(trimmedLineWithoutExtension);
+                                if (!additionalTextures.Contains(textureWithExtension))
                                 {
-                                    string textureWithExtension = addCorrectExtension(trimmedLine);
-                                    if (!additionalTextures.Contains(textureWithExtension))
-                                    {
-                                        additionalTextures.Add(textureWithExtension);
-                                        Pk3Maker.finalTextureList.Add(textureWithExtension);
-                                    }
+                                    additionalTextures.Add(textureWithExtension);
+                                    Pk3Maker.finalTextureList.Add(textureWithExtension);
                                 }
                             }
                         }
@@ -376,25 +479,78 @@ namespace Pk3Maker
             return additionalTextures;
         }
 
-        static string addCorrectExtension(string texture)
+        private static string removeExtensions(string line)
         {
-            string temp = texture.Replace(".jpg", "");
-            temp = temp.Replace(".tga", "");
-            bool isJpg = File.Exists($"/home/fjogen/games/quake3/baseq3/{temp}.jpg");
-            bool isTga = File.Exists($"/home/fjogen/games/quake3/baseq3/{temp}.tga");
+            return line.Replace(".tga", "").Replace(".jpg", "");
+        }
+
+        static string addCorrectExtension(string line)
+        {
+            bool isJpg = File.Exists($"{Pk3Maker.pathToQuake3}/baseq3/{line}.jpg");
+            bool isTga = File.Exists($"{Pk3Maker.pathToQuake3}/baseq3/{line}.tga");
             if (isJpg)
             {
-                return $"{temp}.jpg";
+                return $"{line}.jpg";
             }
             else if (isTga)
             {
-                return $"{temp}.tga";
+                return $"{line}.tga";
             }
             else
             {
                 Console.WriteLine("Getting here probably means there's an unused shader in the shader file");
                 return "";
             }
+        }
+
+        static bool isVanillaTexture(string line)
+        {
+            return (line.Contains("textures/sfx") || line.Contains("textures/effects") || line.Contains("textures/liquids"));
+        }
+
+        static string removeTextureTypeAndTrim(string line)
+        {
+            line = line.Replace("animMap ", "");
+            line = line.Replace("animmap ", "");
+            line = line.Replace("clampMap ", "");
+            line = line.Replace("clampmap ", "");
+            line = line.Replace("videoMap ", "");
+            line = line.Replace("videomap ", "");
+            line = line.Replace("map ", "");
+            line = line.Replace("skyParms ", "");
+            line = line.Replace("skyparms ", "");
+            return line.Trim(); // Trim that trimmed shit
+        }
+
+        static List<string> addEnvTexture(string line)
+        {
+            List<string> env = new List<string>();
+            string envName = Regex.Match(line, @"(\w+\/\w+)+\s").Value.Trim();
+            if (File.Exists($"{Pk3Maker.pathToQuake3}/baseq3/{envName}_bk.tga"))
+            {
+                env.Add($"{envName}_bk.tga");
+            }
+            if (File.Exists($"{Pk3Maker.pathToQuake3}/baseq3/{envName}_dn.tga"))
+            {
+                env.Add($"{envName}_dn.tga");
+            }
+            if (File.Exists($"{Pk3Maker.pathToQuake3}/baseq3/{envName}_ft.tga"))
+            {
+                env.Add($"{envName}_ft.tga");
+            }
+            if (File.Exists($"{Pk3Maker.pathToQuake3}/baseq3/{envName}_lf.tga"))
+            {
+                env.Add($"{envName}_lf.tga");
+            }
+            if (File.Exists($"{Pk3Maker.pathToQuake3}/baseq3/{envName}_rt.tga"))
+            {
+                env.Add($"{envName}_rt.tga");
+            }
+            if (File.Exists($"{Pk3Maker.pathToQuake3}/baseq3/{envName}_up.tga"))
+            {
+                env.Add($"{envName}_up.tga");
+            }
+            return env;
         }
     }
 }
