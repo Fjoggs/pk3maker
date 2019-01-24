@@ -37,6 +37,7 @@ namespace Pk3Maker
             Pk3Maker.parseMapFile();
             string tempDirectory = Pk3Maker.makeFolders();
             Pk3Maker.makePk3(tempDirectory);
+            // Pk3Maker.makeZip(tempDirectory);
             Console.WriteLine("Finished writing pk3");
             watch.Stop();
             Console.WriteLine($"Elapsed time {watch.ElapsedMilliseconds}ms");
@@ -49,6 +50,8 @@ namespace Pk3Maker
             Directory.CreateDirectory($"{tempDirectory}/maps");
             Pk3Maker.copyFileToTemp(tempDirectory, $"maps/{Pk3Maker.mapName}.bsp");
             Pk3Maker.copyFileToTemp(tempDirectory, $"maps/{Pk3Maker.mapName}.map");
+            // Add Readme
+            Pk3Maker.copyFileToTemp(tempDirectory, $"{mapName}.txt");
             List<string> list = new List<string>();
             if (Pk3Maker.pk3Structure.TryGetValue("cfg-maps", out list))
             {
@@ -138,6 +141,10 @@ namespace Pk3Maker
             if (File.Exists(sourceFile))
             {
                 File.Copy(sourceFile, $"{tempDirectory}/{file}", true);
+            }
+            else
+            {
+                Console.WriteLine($"Could not copy file from {sourceFile} to {tempDirectory}/{file}");
             }
         }
 
