@@ -37,10 +37,24 @@ namespace Pk3Maker
             Pk3Maker.parseMapFile();
             string tempDirectory = Pk3Maker.makeFolders();
             Pk3Maker.makePk3(tempDirectory);
-            // Pk3Maker.makeZip(tempDirectory);
+            Pk3Maker.makeZip();
             Console.WriteLine("Finished writing pk3");
             watch.Stop();
             Console.WriteLine($"Elapsed time {watch.ElapsedMilliseconds}ms");
+        }
+
+        private static void makeZip()
+        {
+            string pk3dir = Path.Combine(Path.GetTempPath(), "pk3");
+            string zipFile = $"{pk3dir}/{Pk3Maker.mapName}.zip";
+            if (File.Exists(zipFile))
+            {
+                File.Delete(zipFile);
+            }
+            ZipFile.CreateFromDirectory(pk3dir, zipFile);
+            Console.WriteLine($"Wrote succesfully to {zipFile}");
+            File.Copy(zipFile, $"/home/vegfjogs/games/quake3-dev/baseq3", true);
+            Console.WriteLine($"Copied {zipFile} to /home/vegfjogs/games/quake3-dev/baseq3");
         }
 
         static string makeFolders()
@@ -120,15 +134,16 @@ namespace Pk3Maker
             return tempDirectory;
         }
 
-        static void makePk3(string directoryToZip)
+        static void makePk3(string tempDirectory)
         {
-            string workingDirectory = Directory.GetCurrentDirectory();
-            string pk3File = $"{workingDirectory}/{Pk3Maker.mapName}.pk3";
+            string pk3dir = Path.Combine(Path.GetTempPath(), "pk3");
+            Directory.CreateDirectory(pk3dir);
+            string pk3File = $"{pk3dir}/{Pk3Maker.mapName}.pk3";
             if (File.Exists(pk3File))
             {
                 File.Delete(pk3File);
             }
-            ZipFile.CreateFromDirectory(directoryToZip, pk3File);
+            ZipFile.CreateFromDirectory(tempDirectory, pk3File);
             Console.WriteLine($"Wrote succesfully to {pk3File}");
             File.Copy(pk3File, $"/home/vegfjogs/games/quake3-dev/baseq3", true);
             Console.WriteLine($"Copied {pk3File} to /home/vegfjogs/games/quake3-dev/baseq3");
