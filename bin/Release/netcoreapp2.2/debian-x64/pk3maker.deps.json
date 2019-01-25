@@ -1,0 +1,24 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v2.2/debian-x64",
+    "signature": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v2.2": {},
+    ".NETCoreApp,Version=v2.2/debian-x64": {
+      "pk3maker/1.0.0": {
+        "runtime": {
+          "pk3maker.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "pk3maker/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

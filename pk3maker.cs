@@ -30,8 +30,8 @@ namespace Pk3Maker
             // textures
             Stopwatch watch = Stopwatch.StartNew();
             Pk3Maker.mapName = "Fjo3tourney6_rc3";
-            Pk3Maker.pathToQuake3 = "/home/fjogen/games/quake3";
-            // Pk3Maker.pathToQuake3 = "/home/vegfjogs/games/quake3";
+            // Pk3Maker.pathToQuake3 = "/home/fjogen/games/quake3";
+            Pk3Maker.pathToQuake3 = "/home/vegfjogs/games/quake3";
             Pk3Maker.addCfgMapFileIfPresent();
             Pk3Maker.addLevelshotIfPresent();
             Pk3Maker.parseMapFile();
@@ -260,31 +260,34 @@ namespace Pk3Maker
                     {
                         string aseFile = trimmedLine.Replace("\"model\"", "").Trim().Replace("\"", "");
                         string pathToAseFile = $"{Pk3Maker.pathToQuake3}/baseq3/{aseFile}";
-                        foreach (string aseLine in File.ReadLines(pathToAseFile))
+                        if (File.Exists(pathToAseFile))
                         {
-                            if (aseLine.Contains("*BITMAP") && !Path.GetExtension(aseLine).Equals(""))
+                            foreach (string aseLine in File.ReadLines(pathToAseFile))
                             {
-                                // For some reason, some files report textures with forwardslashes, while some uses backwards
-                                string forwardSlash = Regex.Match(aseLine.Trim(), @"textures\\.*[\.jpg|\.tga]+").Value;
-                                string backwardsSlash = Regex.Match(aseLine.Trim(), @"textures/.*[\.jpg|\.tga]+").Value;
-                                string texturePath = "";
-                                if (forwardSlash.Equals(""))
+                                if (aseLine.Contains("*BITMAP") && !Path.GetExtension(aseLine).Equals(""))
                                 {
-                                    // This means that the file used backwards slashes
-                                    texturePath = backwardsSlash;
+                                    // For some reason, some files report textures with forwardslashes, while some uses backwards
+                                    string forwardSlash = Regex.Match(aseLine.Trim(), @"textures\\.*[\.jpg|\.tga]+").Value;
+                                    string backwardsSlash = Regex.Match(aseLine.Trim(), @"textures/.*[\.jpg|\.tga]+").Value;
+                                    string texturePath = "";
+                                    if (forwardSlash.Equals(""))
+                                    {
+                                        // This means that the file used backwards slashes
+                                        texturePath = backwardsSlash;
+                                    }
+                                    else
+                                    {
+                                        texturePath = forwardSlash;
+                                    }
+                                    texturePath = texturePath.Replace("\\", "/");
+                                    texturePath = texturePath.Replace("textures/", ""); // We haven't added /textures yet
+                                    texturePath = texturePath.Replace(".jpg", "").Replace(".tga", ""); // We haven't added extensions yet
+                                    if (!shaderNamesOrTextures.Contains(texturePath) && !texturePath.Contains("common/") && !texturePath.Contains("common_alphascale/") && !texturePath.Contains("sfx/") && !texturePath.Contains("liquids/") && !texturePath.Contains("effects/"))
+                                    {
+                                        shaderNamesOrTextures.Add(texturePath);
+                                    }
+                                    break; // .ase files can only contain 1 material/bitmap AFAIK
                                 }
-                                else
-                                {
-                                    texturePath = forwardSlash;
-                                }
-                                texturePath = texturePath.Replace("\\", "/");
-                                texturePath = texturePath.Replace("textures/", ""); // We haven't added /textures yet
-                                texturePath = texturePath.Replace(".jpg", "").Replace(".tga", ""); // We haven't added extensions yet
-                                if (!shaderNamesOrTextures.Contains(texturePath) && !texturePath.Contains("common/") && !texturePath.Contains("common_alphascale/") && !texturePath.Contains("sfx/") && !texturePath.Contains("liquids/") && !texturePath.Contains("effects/"))
-                                {
-                                    shaderNamesOrTextures.Add(texturePath);
-                                }
-                                break; // .ase files can only contain 1 material/bitmap AFAIK
                             }
                         }
                     }
@@ -563,7 +566,8 @@ namespace Pk3Maker
             }
             else
             {
-                Console.WriteLine("Getting here probably means there's an unused shader in the shader file");
+
+                Console.WriteLine($"Could not find texture {line}");
                 return "";
             }
         }

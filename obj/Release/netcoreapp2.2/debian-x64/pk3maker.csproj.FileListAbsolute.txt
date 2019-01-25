@@ -1,0 +1,12 @@
+/home/vegfjogs/projects/pk3maker/bin/Release/netcoreapp2.2/debian-x64/pk3maker
+/home/vegfjogs/projects/pk3maker/bin/Release/netcoreapp2.2/debian-x64/pk3maker.deps.json
+/home/vegfjogs/projects/pk3maker/bin/Release/netcoreapp2.2/debian-x64/pk3maker.runtimeconfig.json
+/home/vegfjogs/projects/pk3maker/bin/Release/netcoreapp2.2/debian-x64/pk3maker.runtimeconfig.dev.json
+/home/vegfjogs/projects/pk3maker/bin/Release/netcoreapp2.2/debian-x64/pk3maker.dll
+/home/vegfjogs/projects/pk3maker/bin/Release/netcoreapp2.2/debian-x64/pk3maker.pdb
+/home/vegfjogs/projects/pk3maker/obj/Release/netcoreapp2.2/debian-x64/pk3maker.csprojAssemblyReference.cache
+/home/vegfjogs/projects/pk3maker/obj/Release/netcoreapp2.2/debian-x64/pk3maker.csproj.CoreCompileInputs.cache
+/home/vegfjogs/projects/pk3maker/obj/Release/netcoreapp2.2/debian-x64/pk3maker.AssemblyInfoInputs.cache
+/home/vegfjogs/projects/pk3maker/obj/Release/netcoreapp2.2/debian-x64/pk3maker.AssemblyInfo.cs
+/home/vegfjogs/projects/pk3maker/obj/Release/netcoreapp2.2/debian-x64/pk3maker.dll
+/home/vegfjogs/projects/pk3maker/obj/Release/netcoreapp2.2/debian-x64/pk3maker.pdb
