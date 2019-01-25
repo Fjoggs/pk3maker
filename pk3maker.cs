@@ -29,20 +29,21 @@ namespace Pk3Maker
             // sound
             // textures
             Stopwatch watch = Stopwatch.StartNew();
-            Pk3Maker.mapName = "Fjo3tourney6_rc2";
-            // Pk3Maker.pathToQuake3 = "/home/fjogen/games/quake3";
-            Pk3Maker.pathToQuake3 = "/home/vegfjogs/games/quake3";
+            Pk3Maker.mapName = "Fjo3tourney6_rc3";
+            Pk3Maker.pathToQuake3 = "/home/fjogen/games/quake3";
+            // Pk3Maker.pathToQuake3 = "/home/vegfjogs/games/quake3";
             Pk3Maker.addCfgMapFileIfPresent();
             Pk3Maker.addLevelshotIfPresent();
             Pk3Maker.parseMapFile();
             string tempDirectory = Pk3Maker.makeFolders();
             Pk3Maker.makePk3(tempDirectory);
-            Pk3Maker.makeZip();
+            // Pk3Maker.makeZip();
             Console.WriteLine("Finished writing pk3");
             watch.Stop();
             Console.WriteLine($"Elapsed time {watch.ElapsedMilliseconds}ms");
         }
 
+        // Figure out how to prevent pk3 being used while creating .zip
         private static void makeZip()
         {
             string pk3dir = Path.Combine(Path.GetTempPath(), "pk3");
@@ -53,8 +54,8 @@ namespace Pk3Maker
             }
             ZipFile.CreateFromDirectory(pk3dir, zipFile);
             Console.WriteLine($"Wrote succesfully to {zipFile}");
-            File.Copy(zipFile, $"/home/vegfjogs/games/quake3-dev/baseq3", true);
-            Console.WriteLine($"Copied {zipFile} to /home/vegfjogs/games/quake3-dev/baseq3");
+            File.Copy(zipFile, $"{Pk3Maker.pathToQuake3}/baseq3", true);
+            Console.WriteLine($"Copied {zipFile} to {Pk3Maker.pathToQuake3}/baseq3");
         }
 
         static string makeFolders()
@@ -67,6 +68,8 @@ namespace Pk3Maker
             // Add Readme
             Pk3Maker.copyFileToTemp(tempDirectory, $"{mapName}.txt");
             List<string> list = new List<string>();
+
+            string[] folders = Directory.GetDirectories(tempDirectory);
             if (Pk3Maker.pk3Structure.TryGetValue("cfg-maps", out list))
             {
                 Directory.CreateDirectory($"{tempDirectory}/cfg-maps");
@@ -77,6 +80,8 @@ namespace Pk3Maker
                     Pk3Maker.copyFileToTemp(tempDirectory, path);
                 }
             }
+
+            folders = Directory.GetDirectories(tempDirectory);
             if (Pk3Maker.pk3Structure.TryGetValue("levelshots", out list))
             {
                 Directory.CreateDirectory($"{tempDirectory}/levelshots");
@@ -87,6 +92,8 @@ namespace Pk3Maker
                     Pk3Maker.copyFileToTemp(tempDirectory, path);
                 }
             }
+
+            folders = Directory.GetDirectories(tempDirectory);
             if (Pk3Maker.pk3Structure.TryGetValue("env", out list))
             {
                 Directory.CreateDirectory($"{tempDirectory}/env");
@@ -95,6 +102,8 @@ namespace Pk3Maker
                     Pk3Maker.copyFileToTemp(tempDirectory, env);
                 }
             }
+
+            folders = Directory.GetDirectories(tempDirectory);
             if (Pk3Maker.finalTextureList.Count > 0)
             {
                 Directory.CreateDirectory($"{tempDirectory}/textures");
@@ -104,6 +113,8 @@ namespace Pk3Maker
                 }
 
             }
+
+            folders = Directory.GetDirectories(tempDirectory);
             if (Pk3Maker.pk3Structure.TryGetValue("scripts", out list))
             {
                 Directory.CreateDirectory($"{tempDirectory}/scripts");
@@ -115,6 +126,8 @@ namespace Pk3Maker
                     Pk3Maker.copyFileToTemp(tempDirectory, path);
                 }
             }
+
+            folders = Directory.GetDirectories(tempDirectory);
             if (Pk3Maker.pk3Structure.TryGetValue("sound", out list))
             {
                 Directory.CreateDirectory($"{tempDirectory}/sound");
@@ -126,7 +139,8 @@ namespace Pk3Maker
                 }
             }
 
-            string[] folders = Directory.GetDirectories(tempDirectory);
+            folders = Directory.GetDirectories(tempDirectory);
+            Console.WriteLine("\n");
             foreach (string folder in folders)
             {
                 Console.WriteLine(folder);
@@ -145,8 +159,8 @@ namespace Pk3Maker
             }
             ZipFile.CreateFromDirectory(tempDirectory, pk3File);
             Console.WriteLine($"Wrote succesfully to {pk3File}");
-            File.Copy(pk3File, $"/home/vegfjogs/games/quake3-dev/baseq3", true);
-            Console.WriteLine($"Copied {pk3File} to /home/vegfjogs/games/quake3-dev/baseq3");
+            File.Copy(pk3File, $"{Pk3Maker.pathToQuake3}/baseq3", true);
+            Console.WriteLine($"Copied {pk3File} to {Pk3Maker.pathToQuake3}/baseq3");
         }
 
         static void copyFileToTemp(string tempDirectory, string file)
@@ -168,13 +182,13 @@ namespace Pk3Maker
             string file = $"{Pk3Maker.pathToQuake3}/baseq3/maps/{Pk3Maker.mapName}.map";
             string[] lines = System.IO.File.ReadAllLines(file);
             List<string> shaderNamesAndTextures = Pk3Maker.getShaderNamesAndTextures(lines);
-            Pk3Maker.finalTextureList = shaderNamesAndTextures;
             List<string> shaders = Pk3Maker.getShaders(shaderNamesAndTextures);
             List<Shader> shaderNames = Pk3Maker.getShaderNames(shaders);
             List<string> shaderNamesAndTexturesWithExtensions = Pk3Maker.addExtensionsToTextures(shaderNamesAndTextures, shaderNames);
+            Pk3Maker.finalTextureList = shaderNamesAndTexturesWithExtensions;
             List<Shader> usedShaders = Pk3Maker.extractAllUsedShaders(shaderNamesAndTexturesWithExtensions, shaderNames);
             List<string> texturesFromShaders = Pk3Maker.texturesFromShaders(shaders, usedShaders);
-            Pk3Maker.pk3Structure.Add("textures", shaderNamesAndTexturesWithExtensions);
+            Pk3Maker.pk3Structure.Add("textures", Pk3Maker.finalTextureList);
             Pk3Maker.pk3Structure.Add("scripts", shaders);
             Pk3Maker.pk3Structure.Add("additionalTextures", texturesFromShaders);
         }
@@ -218,6 +232,11 @@ namespace Pk3Maker
                 openBrackets = 0;
                 closeBrackets = 0;
                 trimmedLine = line.Trim();
+                if (trimmedLine.Contains("sound"))
+                {
+                    // Ignore sounds
+                    continue;
+                }
                 if (isBrush)
                 {
                     if (trimmedLine.Contains("// entity"))
@@ -237,7 +256,39 @@ namespace Pk3Maker
                 }
                 else if (isEntity)
                 {
-                    if (trimmedLine.Contains("{"))
+                    if (Path.GetExtension(trimmedLine).Equals(".ase\""))
+                    {
+                        string aseFile = trimmedLine.Replace("\"model\"", "").Trim().Replace("\"", "");
+                        string pathToAseFile = $"{Pk3Maker.pathToQuake3}/baseq3/{aseFile}";
+                        foreach (string aseLine in File.ReadLines(pathToAseFile))
+                        {
+                            if (aseLine.Contains("*BITMAP") && !Path.GetExtension(aseLine).Equals(""))
+                            {
+                                // For some reason, some files report textures with forwardslashes, while some uses backwards
+                                string forwardSlash = Regex.Match(aseLine.Trim(), @"textures\\.*[\.jpg|\.tga]+").Value;
+                                string backwardsSlash = Regex.Match(aseLine.Trim(), @"textures/.*[\.jpg|\.tga]+").Value;
+                                string texturePath = "";
+                                if (forwardSlash.Equals(""))
+                                {
+                                    // This means that the file used backwards slashes
+                                    texturePath = backwardsSlash;
+                                }
+                                else
+                                {
+                                    texturePath = forwardSlash;
+                                }
+                                texturePath = texturePath.Replace("\\", "/");
+                                texturePath = texturePath.Replace("textures/", ""); // We haven't added /textures yet
+                                texturePath = texturePath.Replace(".jpg", "").Replace(".tga", ""); // We haven't added extensions yet
+                                if (!shaderNamesOrTextures.Contains(texturePath) && !texturePath.Contains("common/") && !texturePath.Contains("common_alphascale/") && !texturePath.Contains("sfx/") && !texturePath.Contains("liquids/") && !texturePath.Contains("effects/"))
+                                {
+                                    shaderNamesOrTextures.Add(texturePath);
+                                }
+                                break; // .ase files can only contain 1 material/bitmap AFAIK
+                            }
+                        }
+                    }
+                    else if (trimmedLine.Contains("{"))
                     {
                         openBrackets++;
                     }
@@ -253,7 +304,7 @@ namespace Pk3Maker
                         isEntity = false;
                         continue;
                     }
-                    else if (Regex.IsMatch(trimmedLine, @"((\w+)\/((\w)+[\/_-]*)*)+") && !Path.GetExtension(trimmedLine).Equals(".ase\""))
+                    else if (Regex.IsMatch(trimmedLine, @"((\w+)\/((\w)+[\/_-]*)*)+"))
                     {
                         string asset = Regex.Match(trimmedLine, @"((\w+)\/((\w)+[\/_-]*)*)+").Value;
                         if (Path.GetExtension(trimmedLine).Equals(".wav\""))
@@ -265,6 +316,8 @@ namespace Pk3Maker
                         }
                         if (!shaderNamesOrTextures.Contains(asset) && !asset.Contains("common/") && !asset.Contains("common_alphascale/") && !asset.Contains("sfx/") && !asset.Contains("liquids/") && !asset.Contains("effects/"))
                         {
+                            asset = asset.Replace("textures/", ""); // We haven't added /textures yet
+                            asset = asset.Replace(".jpg", "").Replace(".tga", ""); // We haven't added extensions yet
                             shaderNamesOrTextures.Add(asset);
                         }
                     }
@@ -284,8 +337,6 @@ namespace Pk3Maker
             return shaderNamesOrTextures;
         }
 
-
-
         static List<string> addExtensionsToTextures(List<string> texturesAndShaderNames, List<Shader> shaderNames)
         {
             List<string> list = new List<string>();
@@ -293,19 +344,11 @@ namespace Pk3Maker
             {
                 bool isJpg = false;
                 bool isTga = false;
-                bool isShader = false;
-                foreach (Shader shader in shaderNames)
+                Shader currentShader = shaderNames.Find(x => x.shaderName.Equals($"textures/{textureOrShader}"));
+                if (currentShader != null)
                 {
-                    if (shader.shaderName.Equals($"textures/{textureOrShader}"))
-                    {
-                        // "This is a shader; adding as is to replace later";
-                        list.Add($"textures/{textureOrShader}");
-                        isShader = true;
-                        break; // We found what we're looking for, so no need to continue
-                    }
-                }
-                if (isShader)
-                {
+                    // "This is a shader; adding as is to replace later";
+                    list.Add($"textures/{textureOrShader}");
                     continue;
                 }
                 isJpg = File.Exists($"{Pk3Maker.pathToQuake3}/baseq3/textures/{textureOrShader}.jpg");
@@ -462,7 +505,7 @@ namespace Pk3Maker
                             continue;
                         }
                         trimmedLine = trimmedLine.Replace("\\", "/");
-                        if (trimmedLine.Contains("map ") || trimmedLine.Contains("clampMap ") || trimmedLine.Contains("animMap ") || trimmedLine.Contains("videoMap ") || trimmedLine.Contains("skyParms "))
+                        if (trimmedLine.Contains("map ") || trimmedLine.Contains("q3map_lightimage ") || trimmedLine.Contains("clampMap ") || trimmedLine.Contains("animMap ") || trimmedLine.Contains("videoMap ") || trimmedLine.Contains("skyParms "))
                         {
                             if (trimmedLine.Equals("map $lightmap") || trimmedLine.Equals("map $whiteimage") || trimmedLine.Contains("skyParms -") || trimmedLine.Contains("skyParms full"))
                             {
@@ -541,6 +584,7 @@ namespace Pk3Maker
             line = line.Replace("map ", "");
             line = line.Replace("skyParms ", "");
             line = line.Replace("skyparms ", "");
+            line = line.Replace("q3map_lightimage ", "");
             return line.Trim(); // Trim that trimmed shit
         }
 

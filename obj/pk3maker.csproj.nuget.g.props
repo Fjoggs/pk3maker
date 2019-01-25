@@ -3,9 +3,9 @@
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <RestoreSuccess Condition=" '$(RestoreSuccess)' == '' ">True</RestoreSuccess>
     <RestoreTool Condition=" '$(RestoreTool)' == '' ">NuGet</RestoreTool>
-    <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">/home/vegfjogs/projects/pk3maker/obj/project.assets.json</ProjectAssetsFile>
-    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">/home/vegfjogs/.nuget/packages/</NuGetPackageRoot>
-    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">/home/vegfjogs/.nuget/packages/;/usr/share/dotnet/sdk/NuGetFallbackFolder</NuGetPackageFolders>
+    <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">/home/fjogen/projects/pk3maker/obj/project.assets.json</ProjectAssetsFile>
+    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">/home/fjogen/.nuget/packages/</NuGetPackageRoot>
+    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">/home/fjogen/.nuget/packages/;/usr/share/dotnet/sdk/NuGetFallbackFolder</NuGetPackageFolders>
     <NuGetProjectStyle Condition=" '$(NuGetProjectStyle)' == '' ">PackageReference</NuGetProjectStyle>
     <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">4.9.2</NuGetToolVersion>
   </PropertyGroup>
