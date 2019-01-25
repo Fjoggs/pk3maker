@@ -6,11 +6,16 @@ namespace Pk3Maker
         public string shaderFile;
         public bool hasCurlyBraceInName;
 
-        public Shader(string name, string file, bool hasCurlyBrace)
+        public Shader(string shaderName, string shaderFile, bool hasCurlyBraceInName)
         {
-            shaderName = name;
-            shaderFile = file;
-            hasCurlyBraceInName = hasCurlyBrace;
+            this.shaderName = shaderName;
+            this.shaderFile = shaderFile;
+            this.hasCurlyBraceInName = hasCurlyBraceInName;
+        }
+
+        public bool isDuplicateShader(string shaderName)
+        {
+            return this.shaderName == shaderName;
         }
     }
 

@@ -20,14 +20,6 @@ namespace Pk3Maker
         private static Dictionary<string, List<string>> pk3Structure = new Dictionary<string, List<string>>();
         static void Main()
         {
-            // Structure
-            // cfg-maps
-            // env
-            // levelshots
-            // maps
-            // scripts
-            // sound
-            // textures
             Stopwatch watch = Stopwatch.StartNew();
             Pk3Maker.mapName = "Fjo3tourney6_rc3";
             // Pk3Maker.pathToQuake3 = "/home/fjogen/games/quake3";
@@ -140,7 +132,6 @@ namespace Pk3Maker
             }
 
             folders = Directory.GetDirectories(tempDirectory);
-            Console.WriteLine("\n");
             foreach (string folder in folders)
             {
                 Console.WriteLine(folder);
@@ -179,17 +170,15 @@ namespace Pk3Maker
 
         static void parseMapFile()
         {
-            string file = $"{Pk3Maker.pathToQuake3}/baseq3/maps/{Pk3Maker.mapName}.map";
-            string[] lines = System.IO.File.ReadAllLines(file);
-            List<string> shaderNamesAndTextures = Pk3Maker.getShaderNamesAndTextures(lines);
-            List<string> shaders = Pk3Maker.getShaders(shaderNamesAndTextures);
-            List<Shader> shaderNames = Pk3Maker.getShaderNames(shaders);
+            List<string> shaderNamesAndTextures = Pk3Maker.getShaderNamesAndTextures();
+            List<string> shaderFiles = Pk3Maker.getShaderFiles(shaderNamesAndTextures);
+            List<Shader> shaderNames = Pk3Maker.getShaderNames(shaderFiles);
             List<string> shaderNamesAndTexturesWithExtensions = Pk3Maker.addExtensionsToTextures(shaderNamesAndTextures, shaderNames);
             Pk3Maker.finalTextureList = shaderNamesAndTexturesWithExtensions;
             List<Shader> usedShaders = Pk3Maker.extractAllUsedShaders(shaderNamesAndTexturesWithExtensions, shaderNames);
-            List<string> texturesFromShaders = Pk3Maker.texturesFromShaders(shaders, usedShaders);
+            List<string> texturesFromShaders = Pk3Maker.texturesFromShaders(shaderFiles, usedShaders);
             Pk3Maker.pk3Structure.Add("textures", Pk3Maker.finalTextureList);
-            Pk3Maker.pk3Structure.Add("scripts", shaders);
+            Pk3Maker.pk3Structure.Add("scripts", shaderFiles);
             Pk3Maker.pk3Structure.Add("additionalTextures", texturesFromShaders);
         }
 
@@ -219,8 +208,10 @@ namespace Pk3Maker
             }
         }
 
-        static List<string> getShaderNamesAndTextures(string[] lines)
+        static List<string> getShaderNamesAndTextures()
         {
+            string file = $"{Pk3Maker.pathToQuake3}/baseq3/maps/{Pk3Maker.mapName}.map";
+            string[] lines = File.ReadAllLines(file);
             List<string> shaderNamesOrTextures = new List<string>();
             bool isBrush = false;
             bool isEntity = false;
@@ -368,7 +359,7 @@ namespace Pk3Maker
             return list;
         }
 
-        static List<string> getShaders(List<string> shaderNamesAndTextures)
+        static List<string> getShaderFiles(List<string> shaderNamesAndTextures)
         {
             string[] shaderFiles = Directory.GetFiles($"{Pk3Maker.pathToQuake3}/baseq3/scripts/", "*.shader");
             List<string> shaders = new List<string>();
@@ -387,10 +378,10 @@ namespace Pk3Maker
             return shaders;
         }
 
-        static List<Shader> getShaderNames(List<string> shaders)
+        static List<Shader> getShaderNames(List<string> shaderFiles)
         {
             List<Shader> shaderNames = new List<Shader>();
-            foreach (string file in shaders)
+            foreach (string file in shaderFiles)
             {
                 string[] shader = File.ReadAllLines(file);
                 foreach (string line in shader)
@@ -402,7 +393,49 @@ namespace Pk3Maker
 
                 }
             }
+            groupShadersByFile(shaderNames);
+            groupShadersByShaderName(shaderNames);
             return shaderNames;
+        }
+
+        static List<Shader> groupShadersByFile(List<Shader> shaders)
+        {
+            var groupedResult = from shader in shaders
+                                group shader by shader.shaderFile;
+
+            foreach (var shader in groupedResult)
+            {
+                Console.WriteLine("Shader file: {0}", shader.Key); //Each group has a key 
+
+                foreach (Shader s in shader) // Each group has inner collection
+                    Console.WriteLine("Shader name: {0}", s.shaderName);
+            }
+            return new List<Shader>();
+        }
+
+        static List<Shader> groupShadersByShaderName(List<Shader> shaders)
+        {
+            var groupedResult = from shader in shaders
+                                group shader by shader.shaderName;
+
+            foreach (var shader in groupedResult)
+            {
+                int count = 0;
+                string tempName = "";
+                foreach (Shader s in shader) // Each group has inner collection
+                {
+                    if (count > 0)
+                    {
+                        Console.WriteLine("Shaders with duplicate shaders");
+                        Console.WriteLine("Shader name: {0}", shader.Key); //Each group has a key 
+                        Console.WriteLine("Shader file: {0}", tempName);
+                        Console.WriteLine("Shader file: {0}", s.shaderFile);
+                    }
+                    tempName = s.shaderFile;
+                    count++;
+                }
+            }
+            return new List<Shader>();
         }
 
         static bool isShaderName(string line)
@@ -458,10 +491,6 @@ namespace Pk3Maker
                 int closeBrackets = 0;
                 foreach (string line in lines)
                 {
-                    if (line.Contains("sky"))
-                    {
-                        Console.WriteLine("");
-                    }
                     if (!Pk3Maker.isShaderName(line) && !shaderInUse)
                     {
                         continue;
