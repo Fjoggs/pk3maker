@@ -18,12 +18,12 @@ namespace Pk3Maker
 
         private static List<string> soundList = new List<string>();
         private static Dictionary<string, List<string>> pk3Structure = new Dictionary<string, List<string>>();
-        static void Main()
+        static void Main(string[] args)
         {
             Stopwatch watch = Stopwatch.StartNew();
             Pk3Maker.mapName = "Fjo3tourney6_rc3";
-            // Pk3Maker.pathToQuake3 = "/home/fjogen/games/quake3";
-            Pk3Maker.pathToQuake3 = "/home/vegfjogs/games/quake3";
+            Pk3Maker.pathToQuake3 = "/home/fjogen/games/quake3";
+            // Pk3Maker.pathToQuake3 = "/home/vegfjogs/games/quake3";
             Pk3Maker.addCfgMapFileIfPresent();
             Pk3Maker.addLevelshotIfPresent();
             Pk3Maker.parseMapFile();
@@ -57,6 +57,7 @@ namespace Pk3Maker
             Directory.CreateDirectory($"{tempDirectory}/maps");
             Pk3Maker.copyFileToTemp(tempDirectory, $"maps/{Pk3Maker.mapName}.bsp");
             Pk3Maker.copyFileToTemp(tempDirectory, $"maps/{Pk3Maker.mapName}.map");
+            Pk3Maker.copyFileToTemp(tempDirectory, $"maps/{Pk3Maker.mapName}.aas");
             // Add Readme
             Pk3Maker.copyFileToTemp(tempDirectory, $"{mapName}.txt");
             List<string> list = new List<string>();
@@ -110,7 +111,7 @@ namespace Pk3Maker
             if (Pk3Maker.pk3Structure.TryGetValue("scripts", out list))
             {
                 Directory.CreateDirectory($"{tempDirectory}/scripts");
-                Pk3Maker.copyFileToTemp(tempDirectory, $"scripts/{Pk3Maker.mapName}.arena");
+                copyArenaFile(tempDirectory);
                 foreach (string script in list)
                 {
                     string fileName = Path.GetFileName(script);
@@ -125,9 +126,7 @@ namespace Pk3Maker
                 Directory.CreateDirectory($"{tempDirectory}/sound");
                 foreach (string sound in list)
                 {
-                    string fileName = Path.GetFileName(sound);
-                    string path = $"sound/{fileName}";
-                    Pk3Maker.copyFileToTemp(tempDirectory, path);
+                    Pk3Maker.copyFileToTemp(tempDirectory, sound);
                 }
             }
 
@@ -137,6 +136,21 @@ namespace Pk3Maker
                 Console.WriteLine(folder);
             }
             return tempDirectory;
+        }
+
+        static void copyArenaFile(string tempDirectory)
+        {
+            if (File.Exists($"{Pk3Maker.pathToQuake3}/baseq3/scripts/{Pk3Maker.mapName}.arena"))
+            {
+                Pk3Maker.copyFileToTemp(tempDirectory, $"scripts/{Pk3Maker.mapName}.arena");
+            }
+            else
+            {
+                string[] arenaFiles = Directory.GetFiles($"{Pk3Maker.pathToQuake3}/baseq3/scripts/", "*.arena");
+                string arenaFileWithoutVersioning = arenaFiles.Where(arenaFile => Pk3Maker.mapName.Contains(arenaFile)).First();
+                Pk3Maker.copyFileToTemp(tempDirectory, $"scripts/{arenaFileWithoutVersioning}.arena");
+            }
+
         }
 
         static void makePk3(string tempDirectory)
@@ -223,11 +237,6 @@ namespace Pk3Maker
                 openBrackets = 0;
                 closeBrackets = 0;
                 trimmedLine = line.Trim();
-                if (trimmedLine.Contains("sound"))
-                {
-                    // Ignore sounds
-                    continue;
-                }
                 if (isBrush)
                 {
                     if (trimmedLine.Contains("// entity"))
@@ -327,7 +336,10 @@ namespace Pk3Maker
                     isBrush = true;
                 }
             }
-            Pk3Maker.pk3Structure.Add("sound", Pk3Maker.soundList);
+            if (Pk3Maker.soundList.Count() > 0)
+            {
+                Pk3Maker.pk3Structure.Add("sound", Pk3Maker.soundList);
+            }
             return shaderNamesOrTextures;
         }
 
@@ -361,20 +373,64 @@ namespace Pk3Maker
 
         static List<string> getShaderFiles(List<string> shaderNamesAndTextures)
         {
-            string[] shaderFiles = Directory.GetFiles($"{Pk3Maker.pathToQuake3}/baseq3/scripts/", "*.shader");
-            List<string> shaders = new List<string>();
-            foreach (string file in shaderFiles)
+            string[] allShaderFiles = Directory.GetFiles($"{Pk3Maker.pathToQuake3}/baseq3/scripts/", "*.shader");
+            List<string> shaderFiles = new List<string>();
+            List<Shader> stuff = new List<Shader>();
+            foreach (string shaderFile in allShaderFiles)
             {
-                string shader = File.ReadAllText(file);
-                foreach (string texture in shaderNamesAndTextures)
+                List<string> list = new List<string>();
+                string shader = File.ReadAllText(shaderFile);
+                string[] lines = File.ReadAllLines(shaderFile);
+                foreach (string shaderName in shaderNamesAndTextures)
                 {
-                    if (shader.Contains(texture))
+                    if (shader.Contains(shaderName))
                     {
-                        shaders.Add(file);
-                        break;
+                        // We need to loop the file to make sure the shaderName is an actual shader and not a texture
+                        // being used by a shader (meaning we discard it)
+                        foreach (string line in lines)
+                        {
+                            if (line.Contains(shaderName) && Pk3Maker.isShaderName(line))
+                            {
+                                if (!shaderFiles.Contains(shaderFile))
+                                {
+                                    shaderFiles.Add(shaderFile);
+                                }
+                                list.Add(shaderName);
+                                stuff.Add(new Shader(shaderName, shaderFile, Regex.IsMatch(shaderName, "{")));
+                            }
+                        }
                     }
                 }
             }
+            Lookup<string, string> lookupWithShaderNameAsKey = (Lookup<string, string>)stuff.ToLookup(shader => shader.shaderName, shader => shader.shaderFile);
+            Lookup<string, string> lookupWithShaderFileAsKey = (Lookup<string, string>)stuff.ToLookup(shader => shader.shaderFile, shader => shader.shaderName);
+
+            foreach (IGrouping<string, string> shaderGroup in lookupWithShaderNameAsKey)
+            {
+                // Print the key value of the IGrouping.
+                Console.WriteLine(shaderGroup.Key);
+                // Iterate through each value in the IGrouping and print its value.
+                foreach (string str in shaderGroup)
+                    Console.WriteLine("    {0}", str);
+            }
+
+            foreach (IGrouping<string, string> shaderGroup in lookupWithShaderFileAsKey)
+            {
+                // Print the key value of the IGrouping.
+                Console.WriteLine(shaderGroup.Key);
+                // Iterate through each value in the IGrouping and print its value.
+                foreach (string str in shaderGroup)
+                    Console.WriteLine("    {0}", str);
+            }
+
+            // Fetches shader that is named closest to the current mapname
+            // string topPrioShader = shaderFiles.Single(s => Regex.IsMatch(mapName, Path.GetFileNameWithoutExtension(s)));
+            return shaderFiles;
+        }
+
+        static List<string> removeDuplicateShaders(string topPrioShader)
+        {
+            List<string> shaders = new List<string>();
             return shaders;
         }
 
@@ -595,7 +651,6 @@ namespace Pk3Maker
             }
             else
             {
-
                 Console.WriteLine($"Could not find texture {line}");
                 return "";
             }
