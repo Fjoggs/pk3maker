@@ -1,0 +1,12 @@
+/home/fjogen/projects/pk3maker/bin/Release/netcoreapp2.2/ubuntu-x64/pk3maker
+/home/fjogen/projects/pk3maker/bin/Release/netcoreapp2.2/ubuntu-x64/pk3maker.deps.json
+/home/fjogen/projects/pk3maker/bin/Release/netcoreapp2.2/ubuntu-x64/pk3maker.runtimeconfig.json
+/home/fjogen/projects/pk3maker/bin/Release/netcoreapp2.2/ubuntu-x64/pk3maker.runtimeconfig.dev.json
+/home/fjogen/projects/pk3maker/bin/Release/netcoreapp2.2/ubuntu-x64/pk3maker.dll
+/home/fjogen/projects/pk3maker/bin/Release/netcoreapp2.2/ubuntu-x64/pk3maker.pdb
+/home/fjogen/projects/pk3maker/obj/Release/netcoreapp2.2/ubuntu-x64/pk3maker.csprojAssemblyReference.cache
+/home/fjogen/projects/pk3maker/obj/Release/netcoreapp2.2/ubuntu-x64/pk3maker.csproj.CoreCompileInputs.cache
+/home/fjogen/projects/pk3maker/obj/Release/netcoreapp2.2/ubuntu-x64/pk3maker.AssemblyInfoInputs.cache
+/home/fjogen/projects/pk3maker/obj/Release/netcoreapp2.2/ubuntu-x64/pk3maker.AssemblyInfo.cs
+/home/fjogen/projects/pk3maker/obj/Release/netcoreapp2.2/ubuntu-x64/pk3maker.dll
+/home/fjogen/projects/pk3maker/obj/Release/netcoreapp2.2/ubuntu-x64/pk3maker.pdb

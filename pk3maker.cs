@@ -18,10 +18,16 @@ namespace Pk3Maker
 
         private static List<string> soundList = new List<string>();
         private static Dictionary<string, List<string>> pk3Structure = new Dictionary<string, List<string>>();
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
             Stopwatch watch = Stopwatch.StartNew();
-            Pk3Maker.mapName = "Fjo3tourney6_rc3";
+            if (args.Length == 0)
+            {
+                Console.WriteLine("Missing mapName argument");
+                return 1;
+            }
+            Pk3Maker.mapName = args[0];
+            Console.WriteLine("Map name:", Pk3Maker.mapName);
             Pk3Maker.pathToQuake3 = "/home/fjogen/games/quake3";
             // Pk3Maker.pathToQuake3 = "/home/vegfjogs/games/quake3";
             Pk3Maker.addCfgMapFileIfPresent();
@@ -33,6 +39,7 @@ namespace Pk3Maker
             Console.WriteLine("Finished writing pk3");
             watch.Stop();
             Console.WriteLine($"Elapsed time {watch.ElapsedMilliseconds}ms");
+            return 0;
         }
 
         // Figure out how to prevent pk3 being used while creating .zip
@@ -59,7 +66,7 @@ namespace Pk3Maker
             Pk3Maker.copyFileToTemp(tempDirectory, $"maps/{Pk3Maker.mapName}.map");
             Pk3Maker.copyFileToTemp(tempDirectory, $"maps/{Pk3Maker.mapName}.aas");
             // Add Readme
-            Pk3Maker.copyFileToTemp(tempDirectory, $"{mapName}.txt");
+            Pk3Maker.copyFileToTemp(tempDirectory, $"{Pk3Maker.mapName}.txt");
             List<string> list = new List<string>();
 
             string[] folders = Directory.GetDirectories(tempDirectory);
@@ -144,12 +151,15 @@ namespace Pk3Maker
             {
                 Pk3Maker.copyFileToTemp(tempDirectory, $"scripts/{Pk3Maker.mapName}.arena");
             }
-            else
-            {
-                string[] arenaFiles = Directory.GetFiles($"{Pk3Maker.pathToQuake3}/baseq3/scripts/", "*.arena");
-                string arenaFileWithoutVersioning = arenaFiles.Where(arenaFile => Pk3Maker.mapName.Contains(arenaFile)).First();
-                Pk3Maker.copyFileToTemp(tempDirectory, $"scripts/{arenaFileWithoutVersioning}.arena");
-            }
+            // Should probably not include the main arena file if current version does not exist
+            // else
+            // {
+            //     string[] arenaFiles = Directory.GetFiles($"{Pk3Maker.pathToQuake3}/baseq3/scripts/", "*.arena");
+            //     string arenaFileWithoutVersioning = Path.GetFileNameWithoutExtension(
+            //         arenaFiles.Where(arenaFile => Pk3Maker.mapName.Contains(Path.GetFileNameWithoutExtension(arenaFile))).First()
+            //     );
+            //     Pk3Maker.copyFileToTemp(tempDirectory, $"scripts/{arenaFileWithoutVersioning}.arena");
+            // }
 
         }
 
@@ -205,7 +215,7 @@ namespace Pk3Maker
             }
             else
             {
-                Console.WriteLine("No cfg-map file found. Store in baseq3/cfg-maps/Mapname.cfg");
+                Console.WriteLine($"No cfg-map file found in baseq3/cfg-maps/{Pk3Maker.mapName}.cfg");
             }
         }
 
@@ -423,8 +433,6 @@ namespace Pk3Maker
                     Console.WriteLine("    {0}", str);
             }
 
-            // Fetches shader that is named closest to the current mapname
-            // string topPrioShader = shaderFiles.Single(s => Regex.IsMatch(mapName, Path.GetFileNameWithoutExtension(s)));
             return shaderFiles;
         }
 
