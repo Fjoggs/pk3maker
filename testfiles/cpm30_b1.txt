@@ -1,0 +1,75 @@
+15. June 2020
+22. February 2020
+26. January 2020
+27. January 2019
+15. May 2018
+26. January 2018
+18. October 2017
+5. October 2017
+16. July 2017
+28. June 2017
+21. June 2017
+Sometime during September 2011
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+Title			: Code S
+Filename		: cpm30_b1.bsp 
+Author			: Vegard "Fjoggs" Fjogstad 
+E-mail			: vegard1987@hotmail.com
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+*					 	                              *
+*		     Beta - 1			 	                  *
+*						                              *
+*						                              *
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+Install Info		: Just place the *.pk3 file
+			  inside your baseq3 folder
+			  and select skirmish in the
+			  single player menu.
+Game Type		: Tournament, Free for All
+Weapons			: RL, RG, GL, LG, SG, PG
+Respawn Points		: 6
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+*                   					    	      *
+*		     Beta - 1			 	                  *
+*                       						      *
+*                       						      *
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Thanks			: #cpmpickup and #cpmduel guys for playtesting.
+    			  Hazel W. for most of the textures.
+    			  Sock for a few textures and decals here and there,
+    			  and his excellent alpha blending tutorial.
+    			  Katbits for blender tutorials and helpful tips
+	    		  Hipshot for the skyportal textures and skybox.
+		    	  Terifire, myT and xero for gameplay testing.
+			      CPMA discord for shitposting (and feedback)
+    			  ZTK and the Aussie cup organizers for testing and feedback.
+    			  cityy for the lovely back-and-forth feedback and ideas
+    			  Noruen for his water-pool texture and shader
+                  The CPMA devteam, mapping crew and focus group
+                  for all the testing and feedback.
+
+
+				  Special thanks to Bjarke, fkd, myT, Obsessed and Swelt
+				  for awesome inspiration and help during the creation of this map.
+
+
+			  
+Copyright		: Copyright (2020) by 
+    			  Vegard Fjogstad. 
+
+	    		  All rights reserved
+
+Permissions		: .map file is included, would love some credit 
+    			  if you used it for anything. :)
+    			  This package may only be 
+    			  distributed by means of 	
+    			  electronic transfer, free of
+    			  any charge to the recipient,
+    			  and may not be modified in 
+    			  any way.
+			
+	    		  All the files included in the 
+		    	  original package must remain
+			      intact and unmodified.
+
