@@ -205,6 +205,11 @@ namespace Pk3Maker
                 {
                     Pk3Maker.copyFileToTemp(tempDirectory, env);
                 }
+                if (isRelease)
+                {
+                    Console.WriteLine("Attempting to rename env folder");
+                    Pk3Maker.renameAssetFolder(tempDirectory, "env");
+                }
             }
 
             folders = Directory.GetDirectories(tempDirectory);
@@ -219,7 +224,7 @@ namespace Pk3Maker
                 if (isRelease)
                 {
                     Console.WriteLine("Attempting to rename texture folder");
-                    Pk3Maker.renameTextureFolder(tempDirectory);
+                    Pk3Maker.renameAssetFolder(tempDirectory, "textures");
                 }
             }
 
@@ -245,6 +250,11 @@ namespace Pk3Maker
                 {
                     Pk3Maker.copyFileToTemp(tempDirectory, sound);
                 }
+                if (isRelease)
+                {
+                    Console.WriteLine("Attempting to rename sound folder");
+                    Pk3Maker.renameAssetFolder(tempDirectory, "sound");
+                }
             }
 
             folders = Directory.GetDirectories(tempDirectory);
@@ -255,16 +265,16 @@ namespace Pk3Maker
             return tempDirectory;
         }
 
-        static void renameTextureFolder(string tempDirectory)
+        static void renameAssetFolder(string tempDirectory, string assetPath)
         {
-            string previousTexturePath = $"{tempDirectory}/textures/{Pk3Maker.previousReleaseName}";
-            Console.WriteLine($"Checking if {previousTexturePath} exists");
-            if (Directory.Exists(previousTexturePath))
+            string previousAssetPath = $"{tempDirectory}/{assetPath}/{Pk3Maker.previousReleaseName}";
+            Console.WriteLine($"Checking if {previousAssetPath} exists");
+            if (Directory.Exists(previousAssetPath))
             {
-                string nextTexturePath = $"{tempDirectory}/textures/{Pk3Maker.nextReleaseName}";
-                Console.WriteLine($"Renaming {previousTexturePath} to {nextTexturePath}");
-                Directory.Move(previousTexturePath, nextTexturePath);
-                Console.WriteLine("Succesfully renamed folder");
+                string nextAssetPath = $"{tempDirectory}/{assetPath}/{Pk3Maker.nextReleaseName}";
+                Console.WriteLine($"Renaming {previousAssetPath} to {nextAssetPath}");
+                Directory.Move(previousAssetPath, nextAssetPath);
+                Console.WriteLine($"Succesfully renamed {assetPath} folder");
             }
         }
 
