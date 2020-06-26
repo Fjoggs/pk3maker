@@ -42,7 +42,7 @@ namespace Pk3Maker
             if (isRelease)
             {
                 Pk3Maker.previousReleaseName = Pk3Maker.mapName;
-                Pk3Maker.renameAssetsAndWriteToMapFile();
+                Pk3Maker.renameAssetsAndWriteToFile($"{Pk3Maker.pathToQuake3}/baseq3/maps", "map");
                 Pk3Maker.compileMapFileWithNewAssets();
             }
             else
@@ -62,49 +62,94 @@ namespace Pk3Maker
             return 0;
         }
 
-        private static void renameAssetsAndWriteToMapFile()
+        private static void renameAssetsAndWriteToFile(string path, string fileExtension)
         {
-            Console.WriteLine("Pk3Maker.previousReleaseName: " + Pk3Maker.previousReleaseName);
-            string previousMapFilePath = $"{Pk3Maker.pathToQuake3}/baseq3/maps/{Pk3Maker.previousReleaseName}.map";
-            string[] previousMapFile = File.ReadAllLines(previousMapFilePath);
-            string[] nextMapFile = previousMapFile;
+            string previousSourceFilePath = $"{path}/{Pk3Maker.previousReleaseName}.{fileExtension}";
+            string[] previousSourceFile = File.ReadAllLines(previousSourceFilePath);
+            string[] nextSourceFile = previousSourceFile;
             int currentLine = 0;
-            foreach (string line in previousMapFile)
+            foreach (string line in previousSourceFile)
             {
-                nextMapFile[currentLine] = line.Replace(Pk3Maker.previousReleaseName, Pk3Maker.nextReleaseName);
+                nextSourceFile[currentLine] = line.Replace(Pk3Maker.previousReleaseName, Pk3Maker.nextReleaseName);
                 currentLine++;
             }
-            string nextMapPath = Path.Combine(Path.GetTempPath(), $"{Pk3Maker.nextReleaseName}.map");
-            if (File.Exists(nextMapPath))
+            string nextSourceFilePath = Path.Combine(Path.GetTempPath(), $"{Pk3Maker.nextReleaseName}.{fileExtension}");
+            if (File.Exists(nextSourceFilePath))
             {
-                File.Delete(nextMapPath);
+                File.Delete(nextSourceFilePath);
             }
-            File.WriteAllLines(nextMapPath, nextMapFile);
-            Console.WriteLine($"Wrote lines succesfully to {nextMapPath}");
-            File.Copy(nextMapPath, $"{Pk3Maker.pathToQuake3}/baseq3/maps", true);
-            Console.WriteLine($"Copied {nextMapPath} to {Pk3Maker.pathToQuake3}/baseq3/maps");
+            File.WriteAllLines(nextSourceFilePath, nextSourceFile);
+            Console.WriteLine($"Wrote lines succesfully to {nextSourceFilePath}");
+            File.Copy(nextSourceFilePath, $"{path}", true);
+            Console.WriteLine($"Copied {nextSourceFilePath} to {path}");
         }
 
-        private static void renamePathsInShader(string tempDirectory)
+        private static void renameAssetsInModels()
         {
-            string previousShaderFilePath = $"{tempDirectory}/scripts/{Pk3Maker.previousReleaseName}.shader";
-            string[] previousShaderFile = File.ReadAllLines(previousShaderFilePath);
-            string[] nextShaderFile = previousShaderFile;
-            int currentLine = 0;
-            foreach (string line in previousShaderFile)
+            string file = $"{Pk3Maker.pathToQuake3}/baseq3/maps/{Pk3Maker.nextReleaseName}.map";
+            string[] lines = File.ReadAllLines(file);
+            string trimmedLine;
+            foreach (string line in lines)
             {
-                nextShaderFile[currentLine] = line.Replace(Pk3Maker.previousReleaseName, Pk3Maker.nextReleaseName);
+                trimmedLine = line.Trim();
+                if (Path.GetExtension(trimmedLine).Equals(".ase\""))
+                {
+                    string aseFile = trimmedLine.Replace("\"model\"", "").Trim().Replace("\"", "");
+                    string pathToAseFile = $"{Pk3Maker.pathToQuake3}/baseq3/{aseFile}";
+                    if (File.Exists(pathToAseFile))
+                    {
+                        foreach (string aseLine in File.ReadLines(pathToAseFile))
+                        {
+                            if (aseLine.Contains("*BITMAP") && !Path.GetExtension(aseLine).Equals(""))
+                            {
+                                aseLine.Replace(Pk3Maker.previousReleaseName, Pk3Maker.nextReleaseName);
+                                break; // .ase files can only contain 1 material/bitmap AFAIK
+                            }
+                        }
+                    }
+                }
+                else if (Path.GetExtension(trimmedLine).Equals(".obj\""))
+                {
+                    string objFile = trimmedLine.Replace("\"model\"", "").Trim().Replace("\"", "");
+                    string pathToObjFile = $"{Pk3Maker.pathToQuake3}/baseq3/{objFile}";
+                    // Console.WriteLine("Path to .obj file" + pathToObjFile);
+                    if (File.Exists(pathToObjFile))
+                    {
+                        string matFile = objFile.Replace(".obj", ".mtl");
+                        string pathToMatfile = $"{Pk3Maker.pathToQuake3}/baseq3/{matFile}";
+                        foreach (string matLine in File.ReadLines(pathToMatfile))
+                        {
+                            if (matLine.Contains("map_Kd"))
+                            {
+                                string texturePath = matLine.Replace(Pk3Maker.previousReleaseName, Pk3Maker.nextReleaseName);
+                                break; // Only one texture per material file in q3 AFAIK
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void renamePathsInShader(string path, string fileExtension)
+        {
+            string previousSourceFilePath = $"{path}/{Pk3Maker.previousReleaseName}.{fileExtension}";
+            string[] previousSourceFile = File.ReadAllLines(previousSourceFilePath);
+            string[] nextSourceFile = previousSourceFile;
+            int currentLine = 0;
+            foreach (string line in previousSourceFile)
+            {
+                nextSourceFile[currentLine] = line.Replace(Pk3Maker.previousReleaseName, Pk3Maker.nextReleaseName);
                 currentLine++;
             }
-            string nextShaderFilePath = $"{tempDirectory}/scripts/{Pk3Maker.nextReleaseName}.shader";
-            if (File.Exists(nextShaderFilePath))
+            string nextSourceFilePath = $"{path}/{Pk3Maker.nextReleaseName}.{fileExtension}";
+            if (File.Exists(nextSourceFilePath))
             {
-                File.Delete(nextShaderFilePath);
+                File.Delete(nextSourceFilePath);
             }
-            File.WriteAllLines(nextShaderFilePath, nextShaderFile);
-            Console.WriteLine($"Wrote lines succesfully to {nextShaderFilePath}");
-            File.Delete(previousShaderFilePath);
-            Console.WriteLine($"Added {nextShaderFilePath} and deleted {previousShaderFilePath}");
+            File.WriteAllLines(nextSourceFilePath, nextSourceFile);
+            Console.WriteLine($"Wrote lines succesfully to {nextSourceFilePath}");
+            File.Delete(previousSourceFilePath);
+            Console.WriteLine($"Added {nextSourceFilePath} and deleted {previousSourceFilePath}");
         }
 
 
@@ -239,7 +284,7 @@ namespace Pk3Maker
                     string path = $"scripts/{fileName}";
                     Pk3Maker.copyFileToTemp(tempDirectory, path);
                 }
-                Pk3Maker.renamePathsInShader(tempDirectory);
+                Pk3Maker.renamePathsInShader($"{tempDirectory}/scripts", "shader");
             }
 
             folders = Directory.GetDirectories(tempDirectory);
@@ -273,6 +318,10 @@ namespace Pk3Maker
             {
                 string nextAssetPath = $"{tempDirectory}/{assetPath}/{Pk3Maker.nextReleaseName}";
                 Console.WriteLine($"Renaming {previousAssetPath} to {nextAssetPath}");
+                if (Directory.Exists(nextAssetPath))
+                {
+                    Directory.Delete(nextAssetPath, true);
+                }
                 Directory.Move(previousAssetPath, nextAssetPath);
                 Console.WriteLine($"Succesfully renamed {assetPath} folder");
             }
