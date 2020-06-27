@@ -37,13 +37,22 @@ namespace Pk3Maker
                 Pk3Maker.nextReleaseName = args[1];
                 isRelease = true;
             }
-            // Pk3Maker.pathToQuake3 = "/home/fjogen/games/quake3";
-            Pk3Maker.pathToQuake3 = "/home/vegfjogs/games/quake3";
+            Pk3Maker.pathToQuake3 = "/home/fjogen/games/quake3";
+            // Pk3Maker.pathToQuake3 = "/home/vegfjogs/games/quake3";
             if (isRelease)
             {
                 Pk3Maker.previousReleaseName = Pk3Maker.mapName;
                 Pk3Maker.renameAssetsAndWriteToFile($"{Pk3Maker.pathToQuake3}/baseq3/maps", "map");
-                Pk3Maker.compileMapFileWithNewAssets();
+                // Pk3Maker.compileMapFileWithNewAssets();
+                Console.WriteLine("Attempting to rename env folder");
+                Pk3Maker.renameAndCopyAssetFolder("env");
+                Console.WriteLine("Attempting to rename texture folder");
+                Pk3Maker.renameAndCopyAssetFolder("textures");
+                Console.WriteLine("Attempting to rename paths in shader");
+                Pk3Maker.renamePathsInShader("shader");
+                Pk3Maker.addNewShaderToShaderList();
+                Console.WriteLine("Attempting to rename sound folder");
+                Pk3Maker.renameAndCopyAssetFolder("sound");
             }
             else
             {
@@ -130,9 +139,10 @@ namespace Pk3Maker
             }
         }
 
-        private static void renamePathsInShader(string path, string fileExtension)
+        private static void renamePathsInShader(string fileExtension)
         {
-            string previousSourceFilePath = $"{path}/{Pk3Maker.previousReleaseName}.{fileExtension}";
+            string tempDirectory = Path.Combine(Path.GetTempPath());
+            string previousSourceFilePath = $"{Pk3Maker.pathToQuake3}/baseq3/scripts/{Pk3Maker.previousReleaseName}.{fileExtension}";
             string[] previousSourceFile = File.ReadAllLines(previousSourceFilePath);
             string[] nextSourceFile = previousSourceFile;
             int currentLine = 0;
@@ -141,15 +151,21 @@ namespace Pk3Maker
                 nextSourceFile[currentLine] = line.Replace(Pk3Maker.previousReleaseName, Pk3Maker.nextReleaseName);
                 currentLine++;
             }
-            string nextSourceFilePath = $"{path}/{Pk3Maker.nextReleaseName}.{fileExtension}";
+            string nextSourceFilePath = $"{tempDirectory}{Pk3Maker.nextReleaseName}/scripts/{Pk3Maker.nextReleaseName}.{fileExtension}";
+            if (!Directory.Exists($"{tempDirectory}{Pk3Maker.nextReleaseName}/scripts"))
+            {
+                Directory.CreateDirectory($"{tempDirectory}{Pk3Maker.nextReleaseName}/scripts");
+            }
             if (File.Exists(nextSourceFilePath))
             {
                 File.Delete(nextSourceFilePath);
             }
             File.WriteAllLines(nextSourceFilePath, nextSourceFile);
             Console.WriteLine($"Wrote lines succesfully to {nextSourceFilePath}");
-            File.Delete(previousSourceFilePath);
-            Console.WriteLine($"Added {nextSourceFilePath} and deleted {previousSourceFilePath}");
+            string finalPath = $"{Pk3Maker.pathToQuake3}/baseq3/scripts/{Pk3Maker.nextReleaseName}.{fileExtension}";
+            File.Copy(nextSourceFilePath, finalPath, true);
+            Console.WriteLine($"Copied shader file succesfully to {finalPath}");
+            Console.WriteLine($"Added {nextSourceFilePath}");
         }
 
 
@@ -177,10 +193,10 @@ namespace Pk3Maker
         {
             Console.WriteLine($"Starting compile process for release with name {Pk3Maker.nextReleaseName}");
             Process process = new Process();
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = "compilemap";
+            ProcessStartInfo startInfo = new ProcessStartInfo("compilemap", $"bsp {Pk3Maker.nextReleaseName}");
             process.StartInfo = startInfo;
             process.Start();
+            process.WaitForExit();
             Console.WriteLine("Finished compiling map");
         }
 
@@ -263,7 +279,6 @@ namespace Pk3Maker
                 Directory.CreateDirectory($"{tempDirectory}/textures");
                 foreach (string texture in Pk3Maker.finalTextureList)
                 {
-                    Console.WriteLine("Texture: " + texture);
                     Pk3Maker.copyFileToTemp(tempDirectory, texture);
                 }
                 if (isRelease)
@@ -284,7 +299,10 @@ namespace Pk3Maker
                     string path = $"scripts/{fileName}";
                     Pk3Maker.copyFileToTemp(tempDirectory, path);
                 }
-                Pk3Maker.renamePathsInShader($"{tempDirectory}/scripts", "shader");
+                if (isRelease)
+                {
+                    Pk3Maker.renamePathsInShader("shader");
+                }
             }
 
             folders = Directory.GetDirectories(tempDirectory);
@@ -326,6 +344,36 @@ namespace Pk3Maker
                 Console.WriteLine($"Succesfully renamed {assetPath} folder");
             }
         }
+
+        static void addNewShaderToShaderList()
+        {
+            string currentShaderListPath = $"{Pk3Maker.pathToQuake3}/baseq3/scripts/shaderlist.txt";
+            string backupShaderList = currentShaderListPath + ".tmp";
+            File.Copy(currentShaderListPath, backupShaderList, true);
+            Console.WriteLine($"Creating backup of old {currentShaderListPath} to {backupShaderList}");
+            File.AppendAllText(currentShaderListPath, Pk3Maker.nextReleaseName);
+            Console.WriteLine($"Added {Pk3Maker.nextReleaseName} succesfully to {currentShaderListPath}");
+        }
+
+        static void renameAndCopyAssetFolder(string assetPath)
+        {
+            string previousAssetPath = $"{Pk3Maker.pathToQuake3}/baseq3/{assetPath}/{Pk3Maker.previousReleaseName}";
+            Console.WriteLine($"Checking if {previousAssetPath} exists");
+            if (Directory.Exists(previousAssetPath))
+            {
+                string nextAssetPath = $"{Pk3Maker.pathToQuake3}/{assetPath}/{Pk3Maker.nextReleaseName}";
+                Directory.CreateDirectory(nextAssetPath);
+                string[] assets = Directory.GetFiles(previousAssetPath);
+                foreach (string asset in assets)
+                {
+                    string fileName = Path.GetFileName(asset);
+                    string destinationPath = Path.Combine(nextAssetPath, fileName);
+                    File.Copy(asset, destinationPath, true);
+                }
+                Console.WriteLine($"Succesfully copied {previousAssetPath} to {nextAssetPath}");
+            }
+        }
+
 
         static void copyArenaFile(string tempDirectory)
         {
@@ -391,10 +439,6 @@ namespace Pk3Maker
         static void parseMapFile()
         {
             List<string> shaderNamesAndTextures = Pk3Maker.getShaderNamesAndTextures();
-            foreach (var shaderName in shaderNamesAndTextures)
-            {
-                Console.WriteLine("Shader name: " + shaderName);
-            }
             List<string> shaderFiles = Pk3Maker.getShaderFiles(shaderNamesAndTextures);
             List<Shader> shaderNames = Pk3Maker.getShaderNames(shaderFiles);
             List<string> shaderNamesAndTexturesWithExtensions = Pk3Maker.addExtensionsToTextures(shaderNamesAndTextures, shaderNames);
@@ -886,8 +930,29 @@ namespace Pk3Maker
                         }
                         if (Regex.IsMatch(trimmedLine, "qer_editorimage"))
                         {
-                            // We ignore editorimages
-                            continue;
+                            if (isRelease)
+                            {
+                                string trimmedLineWithoutType = Pk3Maker.removeTextureTypeAndTrim(trimmedLine);
+                                if (additionalTextures.Contains(trimmedLineWithoutType))
+                                {
+                                    Console.WriteLine("QER: Already added texture");
+                                    // Already added; skipping
+                                    continue;
+                                }
+                                string trimmedLineWithoutExtension = Pk3Maker.removeExtensions(trimmedLineWithoutType);
+                                string textureWithExtension = Pk3Maker.addCorrectExtension(trimmedLineWithoutExtension);
+                                if (!additionalTextures.Contains(textureWithExtension))
+                                {
+                                    Console.WriteLine($"QER: Adding {textureWithExtension} to final texture list");
+                                    additionalTextures.Add(textureWithExtension);
+                                    Pk3Maker.finalTextureList.Add(textureWithExtension);
+                                }
+                            }
+                            else
+                            {
+                                // We ignore editorimages
+                                continue;
+                            }
                         }
                         trimmedLine = trimmedLine.Replace("\\", "/");
                         if (trimmedLine.Contains("map ") || trimmedLine.Contains("q3map_lightimage ") || trimmedLine.Contains("clampMap ") || trimmedLine.Contains("animMap ") || trimmedLine.Contains("videoMap ") || trimmedLine.Contains("skyParms "))

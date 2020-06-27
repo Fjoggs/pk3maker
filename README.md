@@ -14,5 +14,6 @@ It looks for files located in `/home/fjogen/games/quake3/baseq3`
 
 `dotnet run nameOfMap`
 
-`pk3maker nameOfMap`
+`dotnet run nameOfMap nameOfRelease` to make a copy of the map with new paths
 
+`pk3maker nameOfMap`
