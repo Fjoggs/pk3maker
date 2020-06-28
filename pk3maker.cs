@@ -43,6 +43,7 @@ namespace Pk3Maker
             {
                 Pk3Maker.previousReleaseName = Pk3Maker.mapName;
                 Pk3Maker.renameAssetsAndWriteToFile($"{Pk3Maker.pathToQuake3}/baseq3/maps", "map");
+                // Compiling doesn't really make sense for the actual usecase of this feature
                 // Pk3Maker.compileMapFileWithNewAssets();
                 Console.WriteLine("Attempting to rename env folder");
                 Pk3Maker.renameAndCopyAssetFolder("env");
