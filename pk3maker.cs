@@ -42,7 +42,9 @@ namespace Pk3Maker
             if (isRelease)
             {
                 Pk3Maker.previousReleaseName = Pk3Maker.mapName;
-                Pk3Maker.renameAssetsAndWriteToFile($"{Pk3Maker.pathToQuake3}/baseq3/maps", "map");
+                string sourcePath = $"{Pk3Maker.pathToQuake3}/baseq3/maps/{Pk3Maker.previousReleaseName}.map";
+                string destinationPath = Path.Combine(Path.GetTempPath(), $"{Pk3Maker.nextReleaseName}.map");
+                Pk3Maker.renameAssetsAndWriteToFile(sourcePath, destinationPath, true);
                 // Compiling doesn't really make sense for the actual usecase of this feature
                 // Pk3Maker.compileMapFileWithNewAssets();
                 Console.WriteLine("Attempting to rename env folder");
@@ -60,8 +62,12 @@ namespace Pk3Maker
                 Pk3Maker.previousReleaseName = Pk3Maker.mapName;
                 Pk3Maker.nextReleaseName = Pk3Maker.mapName;
             }
-            Pk3Maker.addCfgMapFileIfPresent();
-            Pk3Maker.addLevelshotIfPresent();
+            string previousCfg = $"{Pk3Maker.pathToQuake3}/baseq3/cfg-maps/{Pk3Maker.previousReleaseName}.cfg";
+            string nextCfg = $"{Pk3Maker.pathToQuake3}/baseq3/cfg-maps/{Pk3Maker.nextReleaseName}.cfg";
+            Pk3Maker.addAssetIfPresent(previousCfg, nextCfg, "cfg-maps");
+            string previousLevelshot = $"{Pk3Maker.pathToQuake3}/baseq3/levelshots/{Pk3Maker.previousReleaseName}.jpg";
+            string nextLevelshot = $"{Pk3Maker.pathToQuake3}/baseq3/levelshots/{Pk3Maker.nextReleaseName}.jpg";
+            Pk3Maker.addAssetIfPresent(previousLevelshot, nextLevelshot, "levelshots");
             Pk3Maker.parseMapFile();
             string tempDirectory = Pk3Maker.makeFolders();
             Pk3Maker.makePk3(tempDirectory);
@@ -72,10 +78,9 @@ namespace Pk3Maker
             return 0;
         }
 
-        private static void renameAssetsAndWriteToFile(string path, string fileExtension)
+        private static void renameAssetsAndWriteToFile(string sourcePath, string destinationPath, bool copyToMainFolder = false)
         {
-            string previousSourceFilePath = $"{path}/{Pk3Maker.previousReleaseName}.{fileExtension}";
-            string[] previousSourceFile = File.ReadAllLines(previousSourceFilePath);
+            string[] previousSourceFile = File.ReadAllLines(sourcePath);
             string[] nextSourceFile = previousSourceFile;
             int currentLine = 0;
             foreach (string line in previousSourceFile)
@@ -83,15 +88,20 @@ namespace Pk3Maker
                 nextSourceFile[currentLine] = line.Replace(Pk3Maker.previousReleaseName, Pk3Maker.nextReleaseName);
                 currentLine++;
             }
-            string nextSourceFilePath = Path.Combine(Path.GetTempPath(), $"{Pk3Maker.nextReleaseName}.{fileExtension}");
-            if (File.Exists(nextSourceFilePath))
+            if (File.Exists(destinationPath))
             {
-                File.Delete(nextSourceFilePath);
+                File.Delete(destinationPath);
             }
-            File.WriteAllLines(nextSourceFilePath, nextSourceFile);
-            Console.WriteLine($"Wrote lines succesfully to {nextSourceFilePath}");
-            File.Copy(nextSourceFilePath, $"{path}", true);
-            Console.WriteLine($"Copied {nextSourceFilePath} to {path}");
+            File.WriteAllLines(destinationPath, nextSourceFile);
+            Console.WriteLine($"Wrote lines succesfully to {destinationPath}");
+            if (copyToMainFolder)
+            {
+                string newMapFile = sourcePath.Replace($"{Pk3Maker.previousReleaseName}.map", "");
+                Console.WriteLine("Source path: " + sourcePath);
+                Console.WriteLine("Replacing shit: " + newMapFile);
+                File.Copy(destinationPath, $"{newMapFile}", true);
+                Console.WriteLine($"Copied {destinationPath} to {newMapFile}");
+            }
         }
 
         private static void renameAssetsInModels()
@@ -167,27 +177,6 @@ namespace Pk3Maker
             File.Copy(nextSourceFilePath, finalPath, true);
             Console.WriteLine($"Copied shader file succesfully to {finalPath}");
             Console.WriteLine($"Added {nextSourceFilePath}");
-        }
-
-
-        private static void renameReferencesInArenaFile(string tempDirectory)
-        {
-            string previousArenaFilePath = $"{Pk3Maker.pathToQuake3}/baseq3/scripts/{Pk3Maker.previousReleaseName}.arena";
-            string[] previousArenaFile = File.ReadAllLines(previousArenaFilePath);
-            string[] nextArenaFile = previousArenaFile;
-            int currentLine = 0;
-            foreach (string line in previousArenaFile)
-            {
-                nextArenaFile[currentLine] = line.Replace(Pk3Maker.previousReleaseName, Pk3Maker.nextReleaseName);
-                currentLine++;
-            }
-            string nextArenaFilePath = $"{tempDirectory}/scripts/{Pk3Maker.nextReleaseName}.arena";
-            if (File.Exists(nextArenaFilePath))
-            {
-                File.Delete(nextArenaFilePath);
-            }
-            File.WriteAllLines(nextArenaFilePath, nextArenaFile);
-            Console.WriteLine($"Wrote lines succesfully to {nextArenaFilePath}");
         }
 
         private static void compileMapFileWithNewAssets()
@@ -382,8 +371,9 @@ namespace Pk3Maker
             {
                 if (isRelease)
                 {
-                    Console.WriteLine("Attempting to rename references in previous version arena file");
-                    renameReferencesInArenaFile(tempDirectory);
+                    string sourcePath = $"{Pk3Maker.pathToQuake3}/baseq3/scripts/{Pk3Maker.previousReleaseName}.arena";
+                    string destinationPath = $"{tempDirectory}/scripts/{Pk3Maker.nextReleaseName}.arena";
+                    renameAssetsAndWriteToFile(sourcePath, destinationPath);
                 }
                 else
                 {
@@ -451,47 +441,23 @@ namespace Pk3Maker
             Pk3Maker.pk3Structure.Add("additionalTextures", texturesFromShaders);
         }
 
-        static void addCfgMapFileIfPresent()
+        static void addAssetIfPresent(string sourcePath, string destinationPath, string folder)
         {
-            string previousCfg = $"{Pk3Maker.pathToQuake3}/baseq3/cfg-maps/{Pk3Maker.previousReleaseName}.cfg";
-            if (File.Exists(previousCfg))
+            if (File.Exists(sourcePath))
             {
                 if (isRelease)
                 {
-                    string nextCfg = $"{Pk3Maker.pathToQuake3}/baseq3/cfg-maps/{Pk3Maker.nextReleaseName}.cfg";
-                    File.Copy(previousCfg, nextCfg, true);
-                    Pk3Maker.pk3Structure.Add("cfg-maps", new List<string> { nextCfg });
+                    File.Copy(sourcePath, destinationPath, true);
+                    Pk3Maker.pk3Structure.Add(folder, new List<string> { destinationPath });
                 }
                 else
                 {
-                    Pk3Maker.pk3Structure.Add("cfg-maps", new List<string> { previousCfg });
+                    Pk3Maker.pk3Structure.Add(folder, new List<string> { sourcePath });
                 }
             }
             else
             {
-                Console.WriteLine($"No cfg-map file found in baseq3/cfg-maps/{Pk3Maker.previousReleaseName}.cfg");
-            }
-        }
-
-        static void addLevelshotIfPresent()
-        {
-            string previousLevelshot = $"{Pk3Maker.pathToQuake3}/baseq3/levelshots/{Pk3Maker.previousReleaseName}.jpg";
-            if (System.IO.File.Exists(previousLevelshot))
-            {
-                if (isRelease)
-                {
-                    string nextLevelshot = $"{Pk3Maker.pathToQuake3}/baseq3/levelshots/{Pk3Maker.nextReleaseName}.jpg";
-                    File.Copy(previousLevelshot, nextLevelshot, true);
-                    Pk3Maker.pk3Structure.Add("levelshots", new List<string> { nextLevelshot });
-                }
-                else
-                {
-                    Pk3Maker.pk3Structure.Add("levelshots", new List<string> { previousLevelshot });
-                }
-            }
-            else
-            {
-                Console.WriteLine("No levelshot found. Use .jpg");
+                Console.WriteLine($"Source file in {sourcePath} not found");
             }
         }
 
